@@ -31,7 +31,7 @@ jobs:
           node-version: 18
           cache: yarn
       - run: yarn
-      - run: yarn build --base ${{ github.repository }}
+      - run: yarn build --base ethertone
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Upload artifact
