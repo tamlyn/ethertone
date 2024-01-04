@@ -1,42 +1,60 @@
 import { el } from '@elemaudio/core'
-import { create } from 'zustand'
-import { combine } from 'zustand/middleware'
+
+import { ModuleSpec } from './types.ts'
+
+type State = {
+  frequency: number
+  waveform: string
+  gain: number
+}
+
+type Action =
+  | { type: 'init' }
+  | { type: 'setFrequency'; frequency: number }
+  | { type: 'setWaveform'; waveform: 'sine' | 'square' | 'saw' }
+  | { type: 'setGain'; gain: number }
+
+type Spec = ModuleSpec<State, Action>
+
+const stateReducer: Spec['stateReducer'] = (state, action) => {
+  switch (action.type) {
+    case 'init':
+      return { frequency: 440, waveform: 'sine', gain: 0.5 }
+    case 'setFrequency':
+      return { ...state, frequency: action.frequency }
+    case 'setWaveform':
+      return { ...state, waveform: action.waveform }
+    case 'setGain':
+      return { ...state, gain: action.gain }
+    default:
+      console.warn('Unhandled action', action)
+      return state
+  }
+}
+
+const renderAudioGraph: Spec['renderAudioGraph'] = ({ state, input }) => {
+  console.log('renderAudioGraph', state)
+  const osc = el.mul(el.cycle(state.frequency), state.gain)
+  return el.add(osc, input ?? 0)
+}
+
+export const Component: Spec['Component'] = ({ state, dispatch }) => (
+  <div>
+    <input
+      type="range"
+      min="20"
+      max="20000"
+      value={state.frequency}
+      onChange={(e) =>
+        dispatch({ type: 'setFrequency', frequency: Number(e.target.value) })
+      }
+    />
+  </div>
+)
 
 export default {
   title: 'Oscillator',
   Component,
   renderAudioGraph,
-}
-
-const useModuleState = create(
-  combine(
-    {
-      frequency: 440,
-      waveform: 'sine',
-      gain: 0.5,
-    },
-    (set) => ({
-      changeFrequency: (frequency: number) => set({ frequency }),
-    }),
-  ),
-)
-
-function renderAudioGraph() {
-  const { frequency, gain } = useModuleState.getState()
-  return el.mul(el.cycle(frequency), gain)
-}
-
-export function Component() {
-  const state = useModuleState()
-  return (
-    <div>
-      <input
-        type="range"
-        min="20"
-        max="20000"
-        value={state.frequency}
-        onChange={(e) => state.changeFrequency(Number(e.target.value))}
-      />
-    </div>
-  )
-}
+  stateReducer,
+} satisfies Spec
