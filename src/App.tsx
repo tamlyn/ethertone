@@ -4,6 +4,7 @@ import { NodeRepr_t } from '@elemaudio/core'
 import WebRenderer from '@elemaudio/web-renderer'
 import { useEffect, useReducer, useState } from 'react'
 
+import Keyboard from './components/Keyboard.tsx'
 import * as moduleSpecs from './modules'
 import { DefaultState, ModuleSpec } from './modules/types.ts'
 
@@ -16,6 +17,8 @@ type AppState = {
 type AppAction =
   | { type: 'addModule'; module: ModuleSpec }
   | { type: 'updateModuleState'; moduleIndex: number; state: DefaultState }
+  | { type: 'noteOn'; noteNum: number }
+  | { type: 'noteOff'; noteNum: number }
 
 const initialState: AppState = {
   modules: [],
@@ -90,6 +93,10 @@ function App() {
   return (
     <div>
       <h1>Ethertone</h1>
+      <Keyboard
+        onNoteOn={(noteNum) => dispatch({ type: 'noteOn', noteNum })}
+        onNoteOff={(noteNum) => dispatch({ type: 'noteOff', noteNum })}
+      />
       <div className="modules">
         {state.modules.map((module, index) => (
           <div key={index}>
