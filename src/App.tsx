@@ -1,43 +1,48 @@
 import './App.css'
 
-import { NodeRepr_t } from '@elemaudio/core'
+import { el } from '@elemaudio/core'
 import WebRenderer from '@elemaudio/web-renderer'
+import EventEmitter from 'eventemitter3'
 import { useEffect, useReducer, useState } from 'react'
+import { v4 } from 'uuid'
 
 import Keyboard from './components/Keyboard.tsx'
 import * as moduleSpecs from './modules'
-import { DefaultState, ModuleSpec } from './modules/types.ts'
+import { AudioNode, ModuleSpec } from './modules/types.ts'
 
-type Module = { spec: ModuleSpec; state: DefaultState }
+type Module = {
+  spec: ModuleSpec
+  moduleId: string
+  emitter: EventEmitter
+  audioGraph: AudioNode
+  inputNode: AudioNode
+}
 
 type AppState = {
   modules: Array<Module>
+  globalState: { playing: boolean }
 }
 
 type AppAction =
-  | { type: 'addModule'; module: ModuleSpec }
-  | { type: 'updateModuleState'; moduleIndex: number; state: DefaultState }
-  | { type: 'noteOn'; noteNum: number }
-  | { type: 'noteOff'; noteNum: number }
+  | {
+      type: 'addModule'
+      moduleId: string
+      moduleSpec: ModuleSpec
+      emitter: EventEmitter
+    }
+  | {
+      type: 'moduleAudioGraphChanged'
+      moduleId: string
+      audioGraph: AudioNode
+    }
 
 const initialState: AppState = {
   modules: [],
+  globalState: { playing: false },
 }
 
 const ctx = new AudioContext()
 const core = new WebRenderer()
-
-function renderAudioGraph(modules: AppState['modules']) {
-  const out = modules.reduce<number | NodeRepr_t>(
-    (out, module) =>
-      module.spec.renderAudioGraph({
-        state: module.state,
-        input: out,
-      }),
-    0,
-  )
-  core.render(out, out)
-}
 
 function reducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
@@ -47,20 +52,27 @@ function reducer(state: AppState, action: AppAction): AppState {
         modules: [
           ...state.modules,
           {
-            spec: action.module,
-            state: action.module.stateReducer({}, { type: 'init' }),
+            spec: action.moduleSpec,
+            moduleId: action.moduleId,
+            emitter: action.emitter,
+            audioGraph: el.const({ value: 0 }),
+            inputNode: el.const({ value: 0 }),
           },
         ],
       }
-    case 'updateModuleState':
-      return {
-        ...state,
-        modules: state.modules.map((module, index) =>
-          index === action.moduleIndex
-            ? { ...module, state: action.state }
-            : module,
-        ),
+    case 'moduleAudioGraphChanged': {
+      const moduleIndex = state.modules.findIndex(
+        (module) => module.moduleId === action.moduleId,
+      )
+      if (moduleIndex === -1) return state
+
+      const newModules = [...state.modules]
+      newModules[moduleIndex] = {
+        ...newModules[moduleIndex],
+        audioGraph: action.audioGraph,
       }
+      return { ...state, modules: newModules }
+    }
     default:
       return state
   }
@@ -80,41 +92,62 @@ function App() {
     return () => void core.removeAllListeners('load')
   }, [])
 
-  // this is not typesafe - can it ever be?
-  function addModule(module: unknown) {
+  function addModule(spec: unknown) {
     ctx.resume().catch(console.error)
-    dispatch({ type: 'addModule', module: module as ModuleSpec })
+
+    // this is not typesafe - can it ever be?
+    const moduleSpec = spec as ModuleSpec
+    const moduleId = v4()
+    console.debug('Adding module "%s" (%s)', moduleSpec.title, moduleId)
+
+    const eventEmitter = new EventEmitter()
+    eventEmitter.on('audioGraph', (audioGraph: AudioNode) => {
+      dispatch({
+        type: 'moduleAudioGraphChanged',
+        moduleId,
+        audioGraph,
+      })
+    })
+    dispatch({
+      type: 'addModule',
+      moduleId,
+      moduleSpec: moduleSpec,
+      emitter: eventEmitter,
+    })
   }
 
-  if (ready) renderAudioGraph(state.modules)
+  if (ready && state.modules.length > 0) {
+    const lastModule = state.modules[state.modules.length - 1]
+    core.render(lastModule.audioGraph, lastModule.audioGraph)
+  }
 
   if (!ready) return <h1>Loading...</h1>
+
+  const firstModule = state.modules[0]
 
   return (
     <div>
       <h1>Ethertone</h1>
       <Keyboard
-        onNoteOn={(noteNum) => dispatch({ type: 'noteOn', noteNum })}
-        onNoteOff={(noteNum) => dispatch({ type: 'noteOff', noteNum })}
+        onNoteOn={(noteNum) => firstModule.emitter.emit('noteOn', noteNum)}
+        onNoteOff={(noteNum) => firstModule.emitter.emit('noteOff', noteNum)}
       />
       <div className="modules">
-        {state.modules.map((module, index) => (
-          <div key={index}>
-            <h2>{module.spec.title}</h2>
-            <module.spec.Component
-              state={module.state}
-              dispatch={
-                //todo: make this stable
-                (action) =>
-                  dispatch({
-                    type: 'updateModuleState',
-                    moduleIndex: index,
-                    state: module.spec.stateReducer(module.state, action),
-                  })
-              }
-            />
-          </div>
-        ))}
+        {state.modules.map((module, index) => {
+          const prevModule = state.modules[index - 1]
+          const inputNode = prevModule ? prevModule.audioGraph : 0
+          return (
+            <div key={index}>
+              <h2>{module.spec.title}</h2>
+              <module.spec.Component
+                telephone={module.emitter}
+                globalState={state.globalState}
+                inputNode={inputNode}
+                moduleId={module.moduleId}
+              />
+            </div>
+          )
+        })}
         <div className="add">
           {Object.values(moduleSpecs).map((spec) => (
             <button key={spec.title} onClick={() => addModule(spec)}>

@@ -1,21 +1,18 @@
 import { NodeRepr_t } from '@elemaudio/core'
+import EventEmitter from 'eventemitter3'
 
 export type DefaultState = Record<string, unknown>
 
 export type DefaultAction = { type: string }
 
-export type ModuleSpec<
-  State extends DefaultState = DefaultState,
-  Action extends DefaultAction = DefaultAction,
-> = {
+export type AudioNode = NodeRepr_t | number
+
+export type ModuleSpec<State extends DefaultState = DefaultState> = {
   title: string
   Component: (props: {
-    state: State
-    dispatch: (action: Action) => void
+    globalState: State
+    telephone: EventEmitter
+    inputNode: AudioNode
+    moduleId: string
   }) => JSX.Element
-  renderAudioGraph: (props: {
-    state: State
-    input?: NodeRepr_t | number
-  }) => number | NodeRepr_t
-  stateReducer: (state: State, action: Action) => State
 }

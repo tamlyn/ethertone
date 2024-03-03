@@ -51,7 +51,7 @@ export default function Keyboard({ onNoteOn, onNoteOff }: Props) {
       window.document.removeEventListener('keydown', keydownListener)
       window.document.removeEventListener('keyup', keyupListener)
     }
-  }, [])
+  }, [onNoteOff, onNoteOn])
 
   return null
 }

@@ -14,8 +14,9 @@ module.exports = {
       'warn',
       { allowConstantExport: true },
     ],
-    "simple-import-sort/imports": "warn",
-    "simple-import-sort/exports": "warn",
+    'no-console': ['error', { allow: ['warn', 'error', 'info', 'debug'] }],
+    'simple-import-sort/imports': 'warn',
+    'simple-import-sort/exports': 'warn',
   },
   parserOptions: {
     ecmaVersion: 'latest',
