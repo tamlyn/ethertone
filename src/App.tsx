@@ -56,7 +56,7 @@ function reducer(state: AppState, action: AppAction): AppState {
             moduleId: action.moduleId,
             emitter: action.emitter,
             audioGraph: el.const({ value: 0 }),
-            inputNode: el.const({ value: 0 }),
+            inputNode: state.modules[state.modules.length - 1]?.audioGraph ?? 0,
           },
         ],
       }

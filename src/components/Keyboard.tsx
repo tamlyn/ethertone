@@ -34,7 +34,7 @@ export default function Keyboard({ onNoteOn, onNoteOff }: Props) {
   useEffect(() => {
     const keydownListener = (e: KeyboardEvent) => {
       const note = getMidiNote(e.key)
-      if (note) {
+      if (note && !e.repeat) {
         onNoteOn(note)
       }
     }

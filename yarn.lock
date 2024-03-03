@@ -629,6 +629,11 @@
   resolved "https://registry.yarnpkg.com/@types/estree/-/estree-1.0.5.tgz#a6ce3e556e00fd9895dd872dd172ad0d4bd687f4"
   integrity sha512-/kYRxGDLWzHOB7q+wtSUQlFrtcdUccpfy+X+9iMBpHK8QLLhx2wIPYuS5DYtR9Wa/YlZAbIovy7qVdB1Aq6Lyw==
 
+"@types/invariant@^2.2.37":
+  version "2.2.37"
+  resolved "https://registry.yarnpkg.com/@types/invariant/-/invariant-2.2.37.tgz#1709741e534364d653c87dff22fc76fa94aa7bc0"
+  integrity sha512-IwpIMieE55oGWiXkQPSBY1nw1nFs6bsKXTFskNY8sdS17K24vyEBRQZEwlRS7ZmXCWnJcQtbxWzly+cODWGs2A==
+
 "@types/json-schema@^7.0.12":
   version "7.0.13"
   resolved "https://registry.npmjs.org/@types/json-schema/-/json-schema-7.0.13.tgz"
