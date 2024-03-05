@@ -1,7 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
-
-import { el } from '@elemaudio/core'
+import { el, ElemNode } from '@elemaudio/core'
 import invariant from 'invariant'
 
 // A size 8 Hadamard matrix constructed using Numpy and Scipy.
@@ -27,7 +24,7 @@ const H8 = [
 
 // A diffusion step expecting exactly 8 input channels with
 // a maximum diffusion time of 500ms
-function diffuse(size, ...ins) {
+function diffuse(size: ElemNode, ...ins: ElemNode[]) {
   const len = ins.length
   const scale = Math.sqrt(1 / len)
 
@@ -39,7 +36,7 @@ function diffuse(size, ...ins) {
     return el.sdelay({ size: lineSize }, input)
   })
 
-  return H8.map(function (row, i) {
+  return H8.map(function (row) {
     return el.add(
       ...row.map(function (col, j) {
         return el.mul(col * scale, dels[j])
@@ -56,7 +53,14 @@ function diffuse(size, ...ins) {
 // @param {el.const} decay in the range [0, 1]
 // @param {el.const} modDepth in the range [0, 1]
 // @param {...core.Node} ...ins eight input channels
-function dampFDN(name, sampleRate, size, decay, modDepth, ...ins) {
+function dampFDN(
+  name: string,
+  sampleRate: number,
+  size: ElemNode,
+  decay: ElemNode,
+  modDepth: ElemNode,
+  ...ins: ElemNode[]
+) {
   const len = ins.length
   const scale = Math.sqrt(1 / len)
   const md = el.mul(modDepth, 0.02)
@@ -66,24 +70,21 @@ function dampFDN(name, sampleRate, size, decay, modDepth, ...ins) {
   // The unity-gain one pole lowpass here is tuned to taste along
   // the range [0.001, 0.5]. Towards the top of the range, we get into the region
   // of killing the decay time too quickly. Towards the bottom, not much damping.
-  const dels = ins.map(function (input, i) {
-    return el.add(
+  const dels = ins.map((input, i) =>
+    el.add(
       input,
       el.mul(decay, el.smooth(0.105, el.tapIn({ name: `${name}:fdn${i}` }))),
-    )
-  })
+    ),
+  )
 
-  const mix = H8.map(function (row, i) {
-    return el.add(
-      ...row.map(function (col, j) {
-        return el.mul(col * scale, dels[j])
-      }),
-    )
-  })
+  const mix = H8.map((row) =>
+    el.add(...row.map((col, j) => el.mul(col * scale, dels[j]))),
+  )
 
   return mix.map(function (mm, i) {
-    const modulate = (x, rate, amt) => el.add(x, el.mul(amt, el.cycle(rate)))
-    const ms2samps = (ms) => sampleRate * (ms / 1000.0)
+    const modulate = (x: ElemNode, rate: ElemNode, amt: ElemNode) =>
+      el.add(x, el.mul(amt, el.cycle(rate)))
+    const ms2samps = (ms: number) => sampleRate * (ms / 1000.0)
 
     // Each delay line here will be ((i + 1) * 17)ms long, multiplied by [1, 4]
     // depending on the size parameter. So at size = 0, delay lines are 17, 34, 51, ...,
@@ -103,9 +104,18 @@ function dampFDN(name, sampleRate, size, decay, modDepth, ...ins) {
 
     return el.tapOut(
       { name: `${name}:fdn${i}` },
-      el.delay({ size: ms2samps(750) }, readPos, 0, mm),
+      el.delay({ size: 44100 }, readPos, 0, mm),
     )
   })
+}
+
+type Props = {
+  size: number
+  decay: number
+  mod: number
+  mix: number
+  key: string
+  sampleRate: number
 }
 
 // Our main stereo reverb.
@@ -121,7 +131,7 @@ function dampFDN(name, sampleRate, size, decay, modDepth, ...ins) {
 // @param {number} props.mix in [0, 1]
 // @param {core.Node} xl input
 // @param {core.Node} xr input
-export default function srvbAudio(props, xl, xr) {
+export default function srvbAudio(props: Props, xl: ElemNode, xr: ElemNode) {
   invariant(typeof props === 'object', 'Unexpected props object')
 
   const key = props.key
@@ -138,7 +148,7 @@ export default function srvbAudio(props, xl, xr) {
   const eight = [...four, ...four.map((x) => el.mul(-1, x))]
 
   // Diffusion
-  const ms2samps = (ms) => sampleRate * (ms / 1000.0)
+  const ms2samps = (ms: number) => sampleRate * (ms / 1000.0)
 
   const d1 = diffuse(ms2samps(43), ...eight)
   const d2 = diffuse(ms2samps(97), ...d1)

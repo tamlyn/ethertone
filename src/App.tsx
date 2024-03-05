@@ -1,6 +1,6 @@
 import './App.css'
 
-import { el } from '@elemaudio/core'
+import { el, ElemNode } from '@elemaudio/core'
 import WebRenderer from '@elemaudio/web-renderer'
 import EventEmitter from 'eventemitter3'
 import { useEffect, useReducer, useState } from 'react'
@@ -8,14 +8,14 @@ import { v4 } from 'uuid'
 
 import Keyboard from './components/Keyboard.tsx'
 import * as moduleSpecs from './modules'
-import { AudioNode, ModuleSpec } from './modules/types.ts'
+import { ModuleSpec } from './modules/types.ts'
 
 type Module = {
   spec: ModuleSpec
   moduleId: string
   emitter: EventEmitter
-  audioGraph: AudioNode
-  inputNode: AudioNode
+  audioGraph: ElemNode
+  inputNode: ElemNode
 }
 
 type AppState = {
@@ -33,7 +33,7 @@ type AppAction =
   | {
       type: 'moduleAudioGraphChanged'
       moduleId: string
-      audioGraph: AudioNode
+      audioGraph: ElemNode
     }
 
 const initialState: AppState = {
@@ -101,7 +101,7 @@ function App() {
     console.debug('Adding module "%s" (%s)', moduleSpec.title, moduleId)
 
     const eventEmitter = new EventEmitter()
-    eventEmitter.on('audioGraph', (audioGraph: AudioNode) => {
+    eventEmitter.on('audioGraph', (audioGraph: ElemNode) => {
       dispatch({
         type: 'moduleAudioGraphChanged',
         moduleId,

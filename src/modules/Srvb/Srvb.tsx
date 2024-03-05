@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { AudioNode, ModuleSpec } from '../types.ts'
+import { ModuleSpec, RenderAudioGraph } from '../types.ts'
 import srvbAudio from './srvb-audio.ts'
 
 type State = {
@@ -11,14 +11,15 @@ type State = {
   sampleRate: number
 }
 
-const renderAudioGraph: (props: {
-  state: State
-  input: AudioNode
-}) => AudioNode = ({ state, input }) => {
-  return srvbAudio({ ...state, key: 'hello' }, input, input)[0]
+const renderAudioGraph: RenderAudioGraph<State> = ({ id, state, input }) => {
+  return srvbAudio({ ...state, key: `${id}hello` }, input, input)[0]
 }
 
-export const Reverb: ModuleSpec['Component'] = ({ telephone, inputNode }) => {
+export const Reverb: ModuleSpec['Component'] = ({
+  moduleId,
+  telephone,
+  inputNode,
+}) => {
   const [state] = useState({
     size: 0.5,
     decay: 0.5,
@@ -28,7 +29,10 @@ export const Reverb: ModuleSpec['Component'] = ({ telephone, inputNode }) => {
   })
 
   useEffect(() => {
-    telephone.emit('audioGraph', renderAudioGraph({ state, input: inputNode }))
+    telephone.emit(
+      'audioGraph',
+      renderAudioGraph({ id: moduleId, state, input: inputNode }),
+    )
   }, [telephone, state, inputNode])
 
   return <div />
