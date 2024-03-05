@@ -1,7 +1,9 @@
 import { el } from '@elemaudio/core'
 import { useEffect, useState } from 'react'
 
-import { ModuleSpec, RenderAudioGraph } from './types.ts'
+import { PercentKnob, TimeKnob } from '../../components/Knob/Knobs.tsx'
+import { ModuleSpec, RenderAudioGraph } from '../types.ts'
+import styles from './synth.module.css'
 
 type State = {
   frequency: number
@@ -31,7 +33,7 @@ function midiToFreq(midi: number) {
   return 440 * Math.pow(2, (midi - 69) / 12)
 }
 
-export const Oscillator: ModuleSpec['Component'] = ({
+export const Synth: ModuleSpec['Component'] = ({
   moduleId,
   telephone,
   inputNode,
@@ -78,10 +80,33 @@ export const Oscillator: ModuleSpec['Component'] = ({
     }
   }, [telephone, state, inputNode, moduleId])
 
-  return <div />
+  return (
+    <div className={styles.knobs}>
+      <TimeKnob
+        label="Attack"
+        value={state.attack}
+        onChange={(attack) => setState({ ...state, attack })}
+      />
+      <TimeKnob
+        label="Decay"
+        value={state.decay}
+        onChange={(decay) => setState({ ...state, decay })}
+      />
+      <PercentKnob
+        label="Sustain"
+        value={state.sustain}
+        onChange={(sustain) => setState({ ...state, sustain })}
+      />
+      <TimeKnob
+        label="Release"
+        value={state.release}
+        onChange={(release) => setState({ ...state, release })}
+      />
+    </div>
+  )
 }
 
 export default {
   title: 'Oscillator',
-  Component: Oscillator,
+  Component: Synth,
 } satisfies ModuleSpec
