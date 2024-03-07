@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 
+import { PercentKnob, TimeKnob } from '../../components/Knob/Knobs.tsx'
 import { ModuleSpec, RenderAudioGraph } from '../types.ts'
+import styles from './reverb.module.css'
 import srvbAudio from './srvb-audio.ts'
 
 type State = {
@@ -20,7 +22,7 @@ export const Reverb: ModuleSpec['Component'] = ({
   telephone,
   inputNode,
 }) => {
-  const [state] = useState({
+  const [state, setState] = useState({
     size: 0.5,
     decay: 0.5,
     mod: 0.5,
@@ -33,9 +35,32 @@ export const Reverb: ModuleSpec['Component'] = ({
       'audioGraph',
       renderAudioGraph({ id: moduleId, state, input: inputNode }),
     )
-  }, [telephone, state, inputNode])
+  }, [telephone, state, inputNode, moduleId])
 
-  return <div />
+  return (
+    <div className={styles.knobs}>
+      <PercentKnob
+        label="Size"
+        value={state.size}
+        onChange={(size) => setState({ ...state, size })}
+      />
+      <TimeKnob
+        label="Decay"
+        value={state.decay}
+        onChange={(decay) => setState({ ...state, decay })}
+      />
+      <PercentKnob
+        label="Mod"
+        value={state.mod}
+        onChange={(mod) => setState({ ...state, mod })}
+      />
+      <PercentKnob
+        label="Dry/wet"
+        value={state.mix}
+        onChange={(mix) => setState({ ...state, mix })}
+      />
+    </div>
+  )
 }
 
 export default {

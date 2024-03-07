@@ -101,6 +101,7 @@ export const Synth: ModuleSpec['Component'] = ({
         label="Release"
         value={state.release}
         onChange={(release) => setState({ ...state, release })}
+        max={6}
       />
     </div>
   )
