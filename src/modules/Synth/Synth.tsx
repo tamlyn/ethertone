@@ -108,6 +108,6 @@ export const Synth: ModuleSpec['Component'] = ({
 }
 
 export default {
-  title: 'Oscillator',
+  title: 'Synth',
   Component: Synth,
 } satisfies ModuleSpec

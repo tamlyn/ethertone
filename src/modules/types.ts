@@ -3,6 +3,12 @@ import EventEmitter from 'eventemitter3'
 
 export type DefaultState = Record<string, unknown>
 
+export type MeterEvent = {
+  source?: string
+  min: number
+  max: number
+}
+
 export type RenderAudioGraph<State extends DefaultState> = (props: {
   id: string
   state: State

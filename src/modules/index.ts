@@ -1,3 +1,4 @@
 export { default as Delay } from './Delay'
+export { default as Meter } from './Meter/Meter.tsx'
 export { default as Reverb } from './Srvb/Srvb'
-export { default as Oscillator } from './Synth/Synth.tsx'
+export { default as Synth } from './Synth/Synth.tsx'

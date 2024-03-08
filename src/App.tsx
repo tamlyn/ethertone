@@ -3,12 +3,13 @@ import './App.css'
 import { el, ElemNode } from '@elemaudio/core'
 import WebRenderer from '@elemaudio/web-renderer'
 import EventEmitter from 'eventemitter3'
-import { useEffect, useReducer, useState } from 'react'
+import { useEffect, useReducer } from 'react'
 import { v4 } from 'uuid'
 
 import Keyboard from './components/Keyboard.tsx'
 import * as moduleSpecs from './modules'
-import { ModuleSpec } from './modules/types.ts'
+import { MeterEvent, ModuleSpec } from './modules/types.ts'
+import { useEffectEvent } from './utils/useEffectEvent.ts'
 
 type Module = {
   spec: ModuleSpec
@@ -19,11 +20,13 @@ type Module = {
 }
 
 type AppState = {
+  audioContextReady: boolean
   modules: Array<Module>
   globalState: { playing: boolean }
 }
 
 type AppAction =
+  | { type: 'audioContextReady' }
   | {
       type: 'addModule'
       moduleId: string
@@ -37,6 +40,7 @@ type AppAction =
     }
 
 const initialState: AppState = {
+  audioContextReady: false,
   modules: [],
   globalState: { playing: false },
 }
@@ -46,6 +50,8 @@ const core = new WebRenderer()
 
 function reducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
+    case 'audioContextReady':
+      return { ...state, audioContextReady: true }
     case 'addModule':
       return {
         ...state,
@@ -79,18 +85,32 @@ function reducer(state: AppState, action: AppAction): AppState {
 }
 
 function App() {
-  const [ready, setReady] = useState(false)
   const [state, dispatch] = useReducer(reducer, initialState)
 
   useEffect(() => {
     core
-      .on('load', () => setReady(true))
+      .on('load', () => dispatch({ type: 'audioContextReady' }))
       .initialize(ctx)
       .then((node) => node.connect(ctx.destination))
       .catch(console.error)
 
     return () => void core.removeAllListeners('load')
   }, [])
+
+  const onMeter = useEffectEvent((event: MeterEvent) => {
+    const moduleId = event.source
+    const module = state.modules.find((module) => module.moduleId === moduleId)
+    if (!module) {
+      console.error('Meter event for unknown module "%s"', moduleId)
+      return
+    }
+    module.emitter.emit('meter', event)
+  })
+
+  useEffect(() => {
+    core.on('meter', onMeter)
+    return () => void core.off('meter', onMeter)
+  }, [onMeter])
 
   function addModule(spec: unknown) {
     ctx.resume().catch(console.error)
@@ -116,12 +136,12 @@ function App() {
     })
   }
 
-  if (ready && state.modules.length > 0) {
+  if (state.audioContextReady && state.modules.length > 0) {
     const lastModule = state.modules[state.modules.length - 1]
     core.render(lastModule.audioGraph, lastModule.audioGraph)
   }
 
-  if (!ready) return <h1>Loading...</h1>
+  if (!state.audioContextReady) return <h1>Loading...</h1>
 
   const firstModule = state.modules[0]
 

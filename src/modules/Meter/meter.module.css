@@ -1,0 +1,9 @@
+.container {
+    padding: 2px;
+    border: 1px solid dimgrey;
+}
+
+.output {
+    background-color: #535bf2;
+    height: 10px;
+}
