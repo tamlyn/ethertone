@@ -2,11 +2,13 @@ import { el } from '@elemaudio/core'
 import { useEffect, useState } from 'react'
 
 import { PercentKnob, TimeKnob } from '../../components/Knob/Knobs.tsx'
+import { midiToFreq } from '../../utils/midi.ts'
+import { useEffectEvent } from '../../utils/useEffectEvent.ts'
 import { ModuleSpec, RenderAudioGraph } from '../types.ts'
 import styles from './synth.module.css'
 
 type State = {
-  frequency: number
+  notes: number[]
   waveform: string
   attack: number
   decay: number
@@ -24,13 +26,11 @@ const renderAudioGraph: RenderAudioGraph<State> = ({ id, state }) => {
     el.const({ key: `${id}release`, value: state.release }),
     el.const({ key: `${id}gate`, value: state.gate }),
   )
-  const osc = el.blepsaw(el.const({ key: `${id}freq`, value: state.frequency }))
+  const lastNote = state.notes[state.notes.length - 1]
+  const value = lastNote ? midiToFreq(lastNote) : 10
+  const osc = el.blepsaw(el.const({ key: `${id}freq`, value: value }))
   const synth = el.mul(osc, envelope)
   return el.mul(synth, el.const({ key: `${id}gain`, value: state.gain }))
-}
-
-function midiToFreq(midi: number) {
-  return 440 * Math.pow(2, (midi - 69) / 12)
 }
 
 export const Synth: ModuleSpec['Component'] = ({
@@ -38,8 +38,8 @@ export const Synth: ModuleSpec['Component'] = ({
   telephone,
   inputNode,
 }) => {
-  const [state, setState] = useState({
-    frequency: 440,
+  const initialState = {
+    notes: [],
     attack: 0.01,
     decay: 0.1,
     sustain: 0.9,
@@ -47,38 +47,41 @@ export const Synth: ModuleSpec['Component'] = ({
     waveform: 'saw',
     gain: 0.5,
     gate: 0,
+  }
+  const [state, setState] = useState<State>(initialState)
+
+  const noteOn = useEffectEvent((note: number) => {
+    const newState = { ...state, gate: 1, notes: [...state.notes, note] }
+    const newGraph = renderAudioGraph({
+      id: moduleId,
+      state: newState,
+      input: inputNode,
+    })
+    telephone.emit('audioGraph', newGraph)
+    setState(newState)
+  })
+
+  const noteOff = useEffectEvent((note: number) => {
+    const newNotes = state.notes.filter((noteNum) => note !== noteNum)
+    const gate = newNotes.length > 0 ? 1 : 0
+    const newState = { ...state, gate, notes: newNotes }
+    const newGraph = renderAudioGraph({
+      id: moduleId,
+      state: newState,
+      input: inputNode,
+    })
+    telephone.emit('audioGraph', newGraph)
+    setState(newState)
   })
 
   useEffect(() => {
-    function noteOn(note: number) {
-      const newState = { ...state, frequency: midiToFreq(note), gate: 1 }
-      const newGraph = renderAudioGraph({
-        id: moduleId,
-        state: newState,
-        input: inputNode,
-      })
-      telephone.emit('audioGraph', newGraph)
-      setState(newState)
-    }
-
-    function noteOff() {
-      const newState = { ...state, gate: 0 }
-      const newGraph = renderAudioGraph({
-        id: moduleId,
-        state: newState,
-        input: inputNode,
-      })
-      telephone.emit('audioGraph', newGraph)
-      setState(newState)
-    }
-
     telephone.on('noteOn', noteOn)
     telephone.on('noteOff', noteOff)
     return () => {
       telephone.off('noteOn', noteOn)
       telephone.off('noteOff', noteOff)
     }
-  }, [telephone, state, inputNode, moduleId])
+  }, [telephone, noteOn, noteOff])
 
   return (
     <div className={styles.knobs}>

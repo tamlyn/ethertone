@@ -1,0 +1,14 @@
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.controls {
+  display: flex;
+  gap: 1rem;
+}
+
+.add {
+  padding: 16px 0;
+}

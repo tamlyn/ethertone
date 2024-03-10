@@ -1,12 +1,12 @@
-import './App.css'
-
 import { el, ElemNode } from '@elemaudio/core'
 import WebRenderer from '@elemaudio/web-renderer'
 import EventEmitter from 'eventemitter3'
 import { useEffect, useReducer } from 'react'
 import { v4 } from 'uuid'
 
+import styles from './app.module.css'
 import Keyboard from './components/Keyboard.tsx'
+import { TempoKnob } from './components/Knob/Knobs.tsx'
 import * as moduleSpecs from './modules'
 import { MeterEvent, ModuleSpec } from './modules/types.ts'
 import { useEffectEvent } from './utils/useEffectEvent.ts'
@@ -22,7 +22,15 @@ type Module = {
 type AppState = {
   audioContextReady: boolean
   modules: Array<Module>
-  globalState: { playing: boolean }
+  globalState: {
+    playing: boolean
+    measure: number
+    beat: number
+    teenth: number
+  }
+  tempo: number
+  ppqn: number
+  tickCounter: number
 }
 
 type AppAction =
@@ -33,20 +41,30 @@ type AppAction =
       moduleSpec: ModuleSpec
       emitter: EventEmitter
     }
+  | { type: 'removeModule'; moduleId: string }
   | {
       type: 'moduleAudioGraphChanged'
       moduleId: string
       audioGraph: ElemNode
     }
+  | { type: 'updateTempo'; tempo: number }
+  | { type: 'tick' }
+  | { type: 'playToggle' }
 
 const initialState: AppState = {
   audioContextReady: false,
   modules: [],
-  globalState: { playing: false },
+  globalState: { playing: false, measure: 0, beat: 0, teenth: 0 },
+  ppqn: 8,
+  tempo: 120,
+  tickCounter: 0,
 }
 
 const ctx = new AudioContext()
 const core = new WebRenderer()
+function startAudio() {
+  ctx.resume().catch(console.error)
+}
 
 function reducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
@@ -66,6 +84,12 @@ function reducer(state: AppState, action: AppAction): AppState {
           },
         ],
       }
+    case 'removeModule': {
+      const newModules = state.modules.filter(
+        (module) => module.moduleId !== action.moduleId,
+      )
+      return { ...state, modules: newModules }
+    }
     case 'moduleAudioGraphChanged': {
       const moduleIndex = state.modules.findIndex(
         (module) => module.moduleId === action.moduleId,
@@ -79,6 +103,35 @@ function reducer(state: AppState, action: AppAction): AppState {
       }
       return { ...state, modules: newModules }
     }
+    case 'updateTempo':
+      return { ...state, tempo: action.tempo }
+    case 'tick': {
+      if (state.globalState.playing) {
+        const timeSignature = 4
+        const tickCounter = state.tickCounter + 1
+        const teenth =
+          Math.floor(
+            ((tickCounter % state.ppqn) / state.ppqn) * timeSignature,
+          ) + 1
+        const beat = (Math.floor(tickCounter / state.ppqn) % timeSignature) + 1
+        const measure =
+          Math.floor(tickCounter / (state.ppqn * timeSignature)) + 1
+        return {
+          ...state,
+          tickCounter,
+          globalState: { ...state.globalState, teenth, beat, measure },
+        }
+      }
+      return state
+    }
+    case 'playToggle':
+      return {
+        ...state,
+        globalState: {
+          ...state.globalState,
+          playing: !state.globalState.playing,
+        },
+      }
     default:
       return state
   }
@@ -107,16 +160,24 @@ function App() {
     module.emitter.emit('meter', event)
   })
 
+  const onSnapshot = useEffectEvent(
+    (event: { source?: string; data: number }) => {
+      if (event.source === 'tick') dispatch({ type: 'tick' })
+    },
+  )
+
   useEffect(() => {
     core.on('meter', onMeter)
-    return () => void core.off('meter', onMeter)
-  }, [onMeter])
+    core.on('snapshot', onSnapshot)
+    return () => {
+      core.off('meter', onMeter)
+      core.off('snapshot', onSnapshot)
+    }
+  }, [onMeter, onSnapshot])
 
-  function addModule(spec: unknown) {
-    ctx.resume().catch(console.error)
+  function addModule(moduleSpec: ModuleSpec) {
+    startAudio()
 
-    // this is not typesafe - can it ever be?
-    const moduleSpec = spec as ModuleSpec
     const moduleId = v4()
     console.debug('Adding module "%s" (%s)', moduleSpec.title, moduleId)
 
@@ -131,14 +192,24 @@ function App() {
     dispatch({
       type: 'addModule',
       moduleId,
-      moduleSpec: moduleSpec,
+      moduleSpec,
       emitter: eventEmitter,
     })
   }
 
   if (state.audioContextReady && state.modules.length > 0) {
+    const tickFreq = (state.tempo / 60) * state.ppqn
+    const metro = el.mul(
+      0,
+      el.snapshot(
+        { name: 'tick' },
+        el.train({}, el.const({ key: 'tickFreq', value: tickFreq })),
+        el.time(),
+      ),
+    )
+
     const lastModule = state.modules[state.modules.length - 1]
-    core.render(lastModule.audioGraph, lastModule.audioGraph)
+    core.render(lastModule.audioGraph, el.add(metro, lastModule.audioGraph))
   }
 
   if (!state.audioContextReady) return <h1>Loading...</h1>
@@ -146,16 +217,38 @@ function App() {
   const firstModule = state.modules[0]
 
   return (
-    <div>
+    <div className={styles.container}>
       <h1>Ethertone</h1>
       <Keyboard
         onNoteOn={(noteNum) => firstModule.emitter.emit('noteOn', noteNum)}
         onNoteOff={(noteNum) => firstModule.emitter.emit('noteOff', noteNum)}
       />
-      <div className="modules">
+      <div className={styles.controls}>
+        <TempoKnob
+          label="Tempo"
+          value={state.tempo}
+          onChange={(tempo) => dispatch({ type: 'updateTempo', tempo })}
+        />
+        <button
+          onClick={() => {
+            startAudio()
+            dispatch({ type: 'playToggle' })
+          }}
+        >
+          {state.globalState.playing ? 'Stop' : 'Play'}
+        </button>
+        <div>
+          {state.globalState.measure}:{state.globalState.beat}:
+          {state.globalState.teenth}
+        </div>
+      </div>
+      <div>
         {state.modules.map((module, index) => {
           const prevModule = state.modules[index - 1]
           const inputNode = prevModule ? prevModule.audioGraph : 0
+          const onClickRemove = () =>
+            dispatch({ type: 'removeModule', moduleId: module.moduleId })
+
           return (
             <div key={index}>
               <h2>{module.spec.title}</h2>
@@ -165,10 +258,11 @@ function App() {
                 inputNode={inputNode}
                 moduleId={module.moduleId}
               />
+              <button onClick={onClickRemove}>Remove</button>
             </div>
           )
         })}
-        <div className="add">
+        <div className={styles.add}>
           {Object.values(moduleSpecs).map((spec) => (
             <button key={spec.title} onClick={() => addModule(spec)}>
               {spec.title}
