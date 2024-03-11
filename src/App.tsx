@@ -1,10 +1,11 @@
-import { el, ElemNode } from '@elemaudio/core'
+import { ElemNode } from '@elemaudio/core'
 import WebRenderer from '@elemaudio/web-renderer'
 import EventEmitter from 'eventemitter3'
 import { useEffect, useReducer } from 'react'
 import { v4 } from 'uuid'
 
 import styles from './app.module.css'
+import { buildAppAudioGraph } from './audioGraph.ts'
 import Keyboard from './components/Keyboard.tsx'
 import { TempoKnob } from './components/Knob/Knobs.tsx'
 import * as moduleSpecs from './modules'
@@ -78,19 +79,9 @@ function App() {
     })
   }
 
-  if (state.audioContextReady && state.modules.length > 0) {
-    const tickFreq = (state.tempo / 60) * state.ppqn
-    const metro = el.mul(
-      0,
-      el.snapshot(
-        { name: 'tick' },
-        el.train({}, el.const({ key: 'tickFreq', value: tickFreq })),
-        el.time(),
-      ),
-    )
-
-    const lastModule = state.modules[state.modules.length - 1]
-    core.render(lastModule.audioGraph, el.add(metro, lastModule.audioGraph))
+  if (state.audioContextReady) {
+    const channels = buildAppAudioGraph(state)
+    core.render(...channels)
   }
 
   if (!state.audioContextReady) return <h1>Loading...</h1>
@@ -104,6 +95,7 @@ function App() {
         onNoteOn={(noteNum) => firstModule.emitter.emit('noteOn', noteNum)}
         onNoteOff={(noteNum) => firstModule.emitter.emit('noteOff', noteNum)}
       />
+
       <div className={styles.controls}>
         <TempoKnob
           label="Tempo"
@@ -118,11 +110,15 @@ function App() {
         >
           {state.globalState.playing ? 'Stop' : 'Play'}
         </button>
+        <button onClick={() => dispatch({ type: 'metronomeToggle' })}>
+          {state.globalState.metronome ? 'Mute' : 'Unmute'} Metronome
+        </button>
         <div>
           {state.globalState.measure}:{state.globalState.beat}:
           {state.globalState.teenth}
         </div>
       </div>
+
       <div>
         {state.modules.map((module, index) => {
           const prevModule = state.modules[index - 1]

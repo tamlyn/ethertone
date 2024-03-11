@@ -11,11 +11,12 @@ type Module = {
   inputNode: ElemNode
 }
 
-type AppState = {
+export type AppState = {
   audioContextReady: boolean
   modules: Array<Module>
   globalState: {
     playing: boolean
+    metronome: boolean
     measure: number
     beat: number
     teenth: number
@@ -23,6 +24,23 @@ type AppState = {
   tempo: number
   ppqn: number
   tickCounter: number
+  startPlayPosition: number
+}
+
+export const initialState: AppState = {
+  audioContextReady: false,
+  modules: [],
+  globalState: {
+    playing: false,
+    metronome: true,
+    measure: 1,
+    beat: 1,
+    teenth: 1,
+  },
+  ppqn: 8,
+  tempo: 120,
+  tickCounter: 0,
+  startPlayPosition: 0,
 }
 
 type AppAction =
@@ -42,15 +60,7 @@ type AppAction =
   | { type: 'updateTempo'; tempo: number }
   | { type: 'tick' }
   | { type: 'playToggle' }
-
-export const initialState: AppState = {
-  audioContextReady: false,
-  modules: [],
-  globalState: { playing: false, measure: 1, beat: 1, teenth: 1 },
-  ppqn: 8,
-  tempo: 120,
-  tickCounter: 0,
-}
+  | { type: 'metronomeToggle' }
 
 export function reducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
@@ -121,6 +131,16 @@ export function reducer(state: AppState, action: AppAction): AppState {
         globalState: {
           ...state.globalState,
           playing: !state.globalState.playing,
+        },
+        startPlayPosition: state.tickCounter,
+      }
+
+    case 'metronomeToggle':
+      return {
+        ...state,
+        globalState: {
+          ...state.globalState,
+          metronome: !state.globalState.metronome,
         },
       }
 
