@@ -27,6 +27,7 @@ const displayPercent = (valueRaw: number): string =>
   `${(valueRaw * 100).toPrecision(3)}%`
 
 const displayTempo = (valueRaw: number): string => `${Math.round(valueRaw)}bpm`
+const displayDiscrete = (valueRaw: number): string => `${Math.round(valueRaw)}`
 
 type KnobProps = {
   label: string
@@ -72,6 +73,18 @@ export const TempoKnob = ({ min = 20, max = 200, ...props }: KnobProps) => (
     valueMax={max}
     valueRawRoundFn={Math.round}
     valueRawDisplayFn={displayTempo}
+    {...props}
+  />
+)
+
+export const DiscreteKnob = ({ min = 1, max = 10, ...props }: KnobProps) => (
+  <KnobBase
+    stepFn={stepFn}
+    stepLargerFn={stepLargerFn}
+    valueMin={min}
+    valueMax={max}
+    valueRawRoundFn={Math.round}
+    valueRawDisplayFn={displayDiscrete}
     {...props}
   />
 )

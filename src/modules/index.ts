@@ -1,4 +1,5 @@
 export { default as Delay } from './Delay'
-export { default as Meter } from './Meter/Meter.tsx'
+export { default as Euclid } from './Euclid/Euclid'
+export { default as Meter } from './Meter/Meter'
 export { default as Reverb } from './Srvb/Srvb'
-export { default as Synth } from './Synth/Synth.tsx'
+export { default as Synth } from './Synth/Synth'
