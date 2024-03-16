@@ -10,7 +10,7 @@ export function buildAppAudioGraph(state: AppState) {
   // global pulse train that drives everything else
   const pulse = el.train(el.const({ key: 'tickFreq', value: tickFreq }))
 
-  // this signal is one for one sample when the pulse train goes from 0 to 1
+  // this signal emits a single sample of 1 when the pulse train goes from 0 to 1
   const risingOnes = el.and(el.eq(el.z(pulse), 0), el.eq(pulse, 1))
   // count the number of rising ones, which is the number of ticks
   const tickCounter = el.accum(risingOnes, 0)

@@ -13,7 +13,7 @@ type State = {
 const renderAudioGraph: RenderAudioGraph<State> = ({ id, state, input }) => {
   const delay = el.delay(
     { size: 44100 },
-    el.ms2samps(state.time * 1000),
+    el.ms2samps(el.const({ key: `${id}time`, value: state.time * 1000 })),
     el.const({ key: `${id}fb`, value: state.feedback }),
     input,
   )

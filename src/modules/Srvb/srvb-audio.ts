@@ -136,10 +136,10 @@ export default function srvbAudio(props: Props, xl: ElemNode, xr: ElemNode) {
 
   const key = props.key
   const sampleRate = props.sampleRate
-  const size = el.sm(props.size)
-  const decay = el.sm(props.decay)
-  const modDepth = el.sm(props.mod)
-  const mix = el.sm(props.mix)
+  const size = el.sm(el.const({ key: `${key}size`, value: props.size }))
+  const decay = el.sm(el.const({ key: `${key}decay`, value: props.decay }))
+  const modDepth = el.sm(el.const({ key: `${key}mod`, value: props.mod }))
+  const mix = el.sm(el.const({ key: `${key}mix`, value: props.mix }))
 
   // Upmix to eight channels
   const mid = el.mul(0.5, el.add(xl, xr))

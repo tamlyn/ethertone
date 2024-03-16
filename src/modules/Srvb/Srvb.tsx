@@ -14,7 +14,7 @@ type State = {
 }
 
 const renderAudioGraph: RenderAudioGraph<State> = ({ id, state, input }) => {
-  return srvbAudio({ ...state, key: `${id}hello` }, input, input)[0]
+  return srvbAudio({ ...state, key: id }, input, input)[0]
 }
 
 export const Reverb: ModuleSpec['Component'] = ({
