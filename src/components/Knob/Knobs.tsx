@@ -85,6 +85,7 @@ export const DiscreteKnob = ({ min = 1, max = 10, ...props }: KnobProps) => (
     valueMax={max}
     valueRawRoundFn={Math.round}
     valueRawDisplayFn={displayDiscrete}
+    steps={max - min}
     {...props}
   />
 )

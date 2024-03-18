@@ -26,6 +26,7 @@ type KnobBaseProps = Pick<
   readonly onChange: (newValue: number) => void
   readonly stepFn: (valueRaw: number) => number
   readonly stepLargerFn: (valueRaw: number) => number
+  readonly steps?: number
 }
 
 export function KnobBase({
@@ -41,6 +42,7 @@ export function KnobBase({
   stepLargerFn,
   mapTo01 = mapTo01Linear,
   mapFrom01 = mapFrom01Linear,
+  steps,
 }: KnobBaseProps) {
   const knobId = useId()
   const labelId = useId()
@@ -79,7 +81,7 @@ export function KnobBase({
         onValueRawChange={onChange}
         {...keyboardControlHandlers}
       >
-        <KnobBaseThumb value01={value01} />
+        <KnobBaseThumb value01={value01} steps={steps} />
       </KnobHeadless>
       <KnobHeadlessOutput className={styles.label} htmlFor={knobId}>
         {valueRawDisplayFn(value)}
