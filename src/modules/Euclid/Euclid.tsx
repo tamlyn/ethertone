@@ -1,11 +1,17 @@
-import { useState } from 'react'
+import { DiscreteKnob } from '~/components/Knob/Knobs.tsx'
+import { useModuleState } from '~/components/Module/moduleHooks.ts'
 
-import { DiscreteKnob } from '../../components/Knob/Knobs.tsx'
 import { ModuleSpec } from '../types.ts'
 import { euclideanPattern } from './euclideanPattern.ts'
 
-export const Euclid: ModuleSpec['Component'] = () => {
-  const [state, setState] = useState({
+type State = {
+  steps: number
+  fill: number
+  rotate: number
+}
+
+export const Euclid = () => {
+  const [state, setState] = useModuleState({
     steps: 16,
     fill: 4,
     rotate: 0,
@@ -63,5 +69,7 @@ export const Euclid: ModuleSpec['Component'] = () => {
 
 export default {
   title: 'Euclid',
+  moduleId: '@tamlyn/euclid',
   Component: Euclid,
-} satisfies ModuleSpec
+  buildAudioGraph: ({ input }) => input,
+} satisfies ModuleSpec<State>

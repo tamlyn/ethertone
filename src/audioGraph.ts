@@ -1,5 +1,7 @@
 import { el, ElemNode } from '@elemaudio/core'
 
+import { getModuleSpec } from '~/modules'
+
 import { AppState } from './reducer.ts'
 
 export function buildAppAudioGraph(state: AppState) {
@@ -31,11 +33,19 @@ export function buildAppAudioGraph(state: AppState) {
     el.blepsquare(freq),
   )
 
-  const lastModule = state.modules[state.modules.length - 1]
   let out: ElemNode = 0
-  if (lastModule) {
-    out = el.add(out, lastModule.audioGraph)
+  for (const module of state.modules) {
+    const moduleSpec = getModuleSpec(module.moduleId)
+    out =
+      moduleSpec.buildAudioGraph && module.moduleState
+        ? moduleSpec.buildAudioGraph({
+            instanceId: module.instanceId,
+            state: module.moduleState,
+            input: out,
+          })
+        : out
   }
+
   if (state.globalState.metronome && state.globalState.playing) {
     out = el.add(out, metronome)
   }

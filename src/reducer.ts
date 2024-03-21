@@ -1,14 +1,13 @@
-import { el, ElemNode } from '@elemaudio/core'
 import EventEmitter from 'eventemitter3'
+import { v4 } from 'uuid'
 
-import { ModuleSpec } from './modules/types.ts'
+import { DefaultState } from './modules/types.ts'
 
 type Module = {
-  spec: ModuleSpec
   moduleId: string
+  instanceId: string
   emitter: EventEmitter
-  audioGraph: ElemNode
-  inputNode: ElemNode
+  moduleState?: DefaultState
 }
 
 export type AppState = {
@@ -45,17 +44,12 @@ export const initialState: AppState = {
 
 type AppAction =
   | { type: 'audioContextReady' }
+  | { type: 'addModule'; moduleId: string }
+  | { type: 'removeModule'; instanceId: string }
   | {
-      type: 'addModule'
-      moduleId: string
-      moduleSpec: ModuleSpec
-      emitter: EventEmitter
-    }
-  | { type: 'removeModule'; moduleId: string }
-  | {
-      type: 'moduleAudioGraphChanged'
-      moduleId: string
-      audioGraph: ElemNode
+      type: 'moduleStateChanged'
+      instanceId: string
+      moduleState: DefaultState
     }
   | { type: 'updateTempo'; tempo: number }
   | { type: 'tick' }
@@ -67,38 +61,42 @@ export function reducer(state: AppState, action: AppAction): AppState {
     case 'audioContextReady':
       return { ...state, audioContextReady: true }
 
-    case 'addModule':
+    case 'addModule': {
+      const instanceId = v4()
+      console.debug('Adding module "%s" (%s)', action.moduleId, instanceId)
       return {
         ...state,
         modules: [
           ...state.modules,
           {
-            spec: action.moduleSpec,
             moduleId: action.moduleId,
-            emitter: action.emitter,
-            audioGraph: el.const({ value: 0 }),
-            inputNode: state.modules[state.modules.length - 1]?.audioGraph ?? 0,
+            instanceId,
+            emitter: new EventEmitter(),
           },
         ],
       }
+    }
 
     case 'removeModule': {
       const newModules = state.modules.filter(
-        (module) => module.moduleId !== action.moduleId,
+        (module) => module.instanceId !== action.instanceId,
       )
       return { ...state, modules: newModules }
     }
 
-    case 'moduleAudioGraphChanged': {
+    case 'moduleStateChanged': {
       const moduleIndex = state.modules.findIndex(
-        (module) => module.moduleId === action.moduleId,
+        (module) => module.instanceId === action.instanceId,
       )
-      if (moduleIndex === -1) return state
+      if (moduleIndex === -1) {
+        console.error('moduleStateChanged: module not found', action.instanceId)
+        return state
+      }
 
       const newModules = [...state.modules]
       newModules[moduleIndex] = {
         ...newModules[moduleIndex],
-        audioGraph: action.audioGraph,
+        moduleState: action.moduleState,
       }
       return { ...state, modules: newModules }
     }

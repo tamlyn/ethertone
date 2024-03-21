@@ -1,41 +1,38 @@
-import { el, ElemNode } from '@elemaudio/core'
-import { useEffect, useState } from 'react'
+import { el } from '@elemaudio/core'
 
-import { MeterEvent, ModuleSpec } from '../types.ts'
+import { useEvent, useModuleState } from '~/components/Module/moduleHooks.ts'
+
+import { BuildAudioGraph, ModuleSpec } from '../types.ts'
 import styles from './meter.module.css'
 
-const renderAudioGraph = ({ id, input }: { id: string; input: ElemNode }) => {
-  return el.meter({ name: id }, input)
+type State = {
+  level: number
 }
 
-export const Meter: ModuleSpec['Component'] = ({
-  moduleId,
-  telephone,
-  inputNode,
-}) => {
-  const [level, setLevel] = useState(0)
+const buildAudioGraph: BuildAudioGraph<State> = ({ instanceId, input }) => {
+  return el.meter({ name: instanceId }, input)
+}
 
-  useEffect(() => {
-    const newGraph = renderAudioGraph({ id: moduleId, input: inputNode })
-    telephone.emit('audioGraph', newGraph)
+export const Meter = () => {
+  const [state, setState] = useModuleState({ level: 0 })
 
-    telephone.on('meter', (event: MeterEvent) => {
-      setLevel(event.max)
-    })
-
-    return () => {
-      telephone.off('meter')
-    }
-  }, [telephone, inputNode, moduleId])
+  useEvent('meter', (event) => {
+    setState({ level: event.max })
+  })
 
   return (
     <div className={styles.container}>
-      <div className={styles.output} style={{ width: `${level * 100}%` }} />
+      <div
+        className={styles.output}
+        style={{ width: `${state.level * 100}%` }}
+      />
     </div>
   )
 }
 
 export default {
   title: 'Meter',
+  moduleId: '@tamlyn/meter',
   Component: Meter,
-} satisfies ModuleSpec
+  buildAudioGraph,
+} satisfies ModuleSpec<State>

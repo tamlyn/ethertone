@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useModuleState } from '~/components/Module/moduleHooks.ts'
 
 import { PercentKnob, TimeKnob } from '../../components/Knob/Knobs.tsx'
-import { ModuleSpec, RenderAudioGraph } from '../types.ts'
+import { BuildAudioGraph, ModuleSpec } from '../types.ts'
 import styles from './reverb.module.css'
 import srvbAudio from './srvb-audio.ts'
 
@@ -13,29 +13,22 @@ type State = {
   sampleRate: number
 }
 
-const renderAudioGraph: RenderAudioGraph<State> = ({ id, state, input }) => {
-  return srvbAudio({ ...state, key: id }, input, input)[0]
+const buildAudioGraph: BuildAudioGraph<State> = ({
+  instanceId,
+  state,
+  input,
+}) => {
+  return srvbAudio({ ...state, key: instanceId }, input, input)[0]
 }
 
-export const Reverb: ModuleSpec['Component'] = ({
-  moduleId,
-  telephone,
-  inputNode,
-}) => {
-  const [state, setState] = useState({
+export const Reverb = () => {
+  const [state, setState] = useModuleState({
     size: 0.5,
     decay: 0.5,
     mod: 0.5,
     mix: 0.5,
     sampleRate: 44100,
   })
-
-  useEffect(() => {
-    telephone.emit(
-      'audioGraph',
-      renderAudioGraph({ id: moduleId, state, input: inputNode }),
-    )
-  }, [telephone, state, inputNode, moduleId])
 
   return (
     <div className={styles.knobs}>
@@ -65,5 +58,7 @@ export const Reverb: ModuleSpec['Component'] = ({
 
 export default {
   title: 'Reverb',
+  moduleId: '@tamlyn/reverb',
   Component: Reverb,
-} satisfies ModuleSpec
+  buildAudioGraph,
+} satisfies ModuleSpec<State>

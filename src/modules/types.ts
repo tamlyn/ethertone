@@ -1,5 +1,4 @@
 import { ElemNode } from '@elemaudio/core'
-import EventEmitter from 'eventemitter3'
 
 export type DefaultState = Record<string, unknown>
 
@@ -9,18 +8,19 @@ export type MeterEvent = {
   max: number
 }
 
-export type RenderAudioGraph<State extends DefaultState> = (props: {
-  id: string
+export type BuildAudioGraph<State extends DefaultState> = (props: {
+  instanceId: string
   state: State
   input: ElemNode
 }) => ElemNode
 
 export type ModuleSpec<State extends DefaultState = DefaultState> = {
   title: string
-  Component: (props: {
-    globalState: State
-    telephone: EventEmitter
-    inputNode: ElemNode
-    moduleId: string
-  }) => JSX.Element
+  moduleId: string
+  Component: () => JSX.Element
+  buildAudioGraph?: BuildAudioGraph<State>
 }
+
+export type MidiEvent =
+  | { type: 'noteOn' | 'noteOff'; note: number; velocity: number }
+  | { type: 'controlChange'; control: number; value: number }

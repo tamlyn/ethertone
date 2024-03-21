@@ -1,15 +1,13 @@
-import { ElemNode } from '@elemaudio/core'
 import WebRenderer from '@elemaudio/web-renderer'
-import EventEmitter from 'eventemitter3'
 import { useEffect, useReducer } from 'react'
-import { v4 } from 'uuid'
 
 import styles from './app.module.css'
 import { buildAppAudioGraph } from './audioGraph.ts'
 import Keyboard from './components/Keyboard.tsx'
 import { TempoKnob } from './components/Knob/Knobs.tsx'
-import * as moduleSpecs from './modules'
-import { MeterEvent, ModuleSpec } from './modules/types.ts'
+import { ModuleProvider } from './components/Module/ModuleContext.tsx'
+import moduleSpecs, { getModuleSpec } from './modules'
+import { DefaultState, MeterEvent, ModuleSpec } from './modules/types.ts'
 import { initialState, reducer } from './reducer.ts'
 import { useEffectEvent } from './utils/useEffectEvent.ts'
 
@@ -22,6 +20,10 @@ function startAudio() {
 function App() {
   const [state, dispatch] = useReducer(reducer, initialState)
 
+  function setModuleState(instanceId: string, moduleState: DefaultState) {
+    dispatch({ type: 'moduleStateChanged', instanceId, moduleState })
+  }
+
   useEffect(() => {
     core
       .on('load', () => dispatch({ type: 'audioContextReady' }))
@@ -33,10 +35,12 @@ function App() {
   }, [])
 
   const onMeter = useEffectEvent((event: MeterEvent) => {
-    const moduleId = event.source
-    const module = state.modules.find((module) => module.moduleId === moduleId)
+    const instanceId = event.source
+    const module = state.modules.find(
+      (module) => module.instanceId === instanceId,
+    )
     if (!module) {
-      console.error('Meter event for unknown module "%s"', moduleId)
+      console.error('Meter event for unknown module "%s"', instanceId)
       return
     }
     module.emitter.emit('meter', event)
@@ -60,23 +64,7 @@ function App() {
   function addModule(moduleSpec: ModuleSpec) {
     startAudio()
 
-    const moduleId = v4()
-    console.debug('Adding module "%s" (%s)', moduleSpec.title, moduleId)
-
-    const eventEmitter = new EventEmitter()
-    eventEmitter.on('audioGraph', (audioGraph: ElemNode) => {
-      dispatch({
-        type: 'moduleAudioGraphChanged',
-        moduleId,
-        audioGraph,
-      })
-    })
-    dispatch({
-      type: 'addModule',
-      moduleId,
-      moduleSpec,
-      emitter: eventEmitter,
-    })
+    dispatch({ type: 'addModule', moduleId: moduleSpec.moduleId })
   }
 
   if (state.audioContextReady) {
@@ -92,8 +80,20 @@ function App() {
     <div className={styles.container}>
       <h1>Ethertone</h1>
       <Keyboard
-        onNoteOn={(noteNum) => firstModule.emitter.emit('noteOn', noteNum)}
-        onNoteOff={(noteNum) => firstModule.emitter.emit('noteOff', noteNum)}
+        onNoteOn={(noteNum) =>
+          firstModule.emitter.emit('midi', {
+            type: 'noteOn',
+            note: noteNum,
+            velocity: 127,
+          })
+        }
+        onNoteOff={(noteNum) =>
+          firstModule.emitter.emit('midi', {
+            type: 'noteOff',
+            note: noteNum,
+            velocity: 0,
+          })
+        }
       />
 
       <div className={styles.controls}>
@@ -121,26 +121,32 @@ function App() {
 
       <div>
         {state.modules.map((module, index) => {
-          const prevModule = state.modules[index - 1]
-          const inputNode = prevModule ? prevModule.audioGraph : 0
           const onClickRemove = () =>
-            dispatch({ type: 'removeModule', moduleId: module.moduleId })
+            dispatch({ type: 'removeModule', instanceId: module.instanceId })
+          const moduleSpec = getModuleSpec(module.moduleId)
+
+          if (!moduleSpec) {
+            console.error('Unknown module "%s"', module.moduleId)
+            return null
+          }
 
           return (
             <div key={index}>
-              <h2>{module.spec.title}</h2>
-              <module.spec.Component
+              <ModuleProvider
+                instanceId={module.instanceId}
+                moduleState={module.moduleState}
+                setModuleState={setModuleState}
                 telephone={module.emitter}
-                globalState={state.globalState}
-                inputNode={inputNode}
-                moduleId={module.moduleId}
-              />
-              <button onClick={onClickRemove}>Remove</button>
+              >
+                <h2>{moduleSpec.title}</h2>
+                <moduleSpec.Component />
+                <button onClick={onClickRemove}>Remove</button>
+              </ModuleProvider>
             </div>
           )
         })}
         <div className={styles.add}>
-          {Object.values(moduleSpecs).map((spec) => (
+          {moduleSpecs.map((spec) => (
             <button key={spec.title} onClick={() => addModule(spec)}>
               {spec.title}
             </button>

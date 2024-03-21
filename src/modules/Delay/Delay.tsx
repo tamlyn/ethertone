@@ -1,8 +1,9 @@
 import { el } from '@elemaudio/core'
-import { useEffect, useState } from 'react'
 
-import { PercentKnob, TimeKnob } from '../components/Knob/Knobs.tsx'
-import { ModuleSpec, RenderAudioGraph } from './types.ts'
+import { PercentKnob, TimeKnob } from '~/components/Knob/Knobs.tsx'
+import { useModuleState } from '~/components/Module/moduleHooks.ts'
+
+import { BuildAudioGraph, ModuleSpec } from '../types.ts'
 
 type State = {
   feedback: number
@@ -10,7 +11,11 @@ type State = {
   wet: number
 }
 
-const renderAudioGraph: RenderAudioGraph<State> = ({ id, state, input }) => {
+const buildAudioGraph: BuildAudioGraph<State> = ({
+  instanceId: id,
+  state,
+  input,
+}) => {
   const delay = el.delay(
     { size: 44100 },
     el.ms2samps(el.const({ key: `${id}time`, value: state.time * 1000 })),
@@ -21,21 +26,12 @@ const renderAudioGraph: RenderAudioGraph<State> = ({ id, state, input }) => {
   return el.select(mix, delay, input)
 }
 
-export const Delay: ModuleSpec['Component'] = ({
-  moduleId,
-  telephone,
-  inputNode,
-}) => {
-  const [state, setState] = useState({
+export const Delay = () => {
+  const [state, setState] = useModuleState<State>({
     feedback: 0.5,
     time: 0.5,
     wet: 0.5,
   })
-
-  useEffect(() => {
-    const newGraph = renderAudioGraph({ id: moduleId, state, input: inputNode })
-    telephone.emit('audioGraph', newGraph)
-  }, [telephone, state, inputNode, moduleId])
 
   return (
     <div style={{ display: 'flex', gap: 10 }}>
@@ -60,5 +56,7 @@ export const Delay: ModuleSpec['Component'] = ({
 
 export default {
   title: 'Delay',
+  moduleId: '@tamlyn/delay',
   Component: Delay,
-} satisfies ModuleSpec
+  buildAudioGraph: buildAudioGraph,
+} satisfies ModuleSpec<State>

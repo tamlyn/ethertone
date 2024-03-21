@@ -11,5 +11,7 @@
 }
 
 .add {
+  display: flex;
   padding: 16px 0;
+  gap: 16px;
 }
