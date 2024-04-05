@@ -48,7 +48,7 @@ const Synth = () => {
   const [state, setState] = useModuleState<State>(initialState)
 
   useMidi((event) => {
-    switch (event.type) {
+    switch (event.midiType) {
       case 'noteOn': {
         const notes = [...state.notes, event.note]
         setState({ ...state, gate: 1, notes })

@@ -1,13 +1,13 @@
 import EventEmitter from 'eventemitter3'
 import { createContext, ReactNode } from 'react'
 
-import { DefaultState, MidiEvent } from '~/modules/types.ts'
+import { DefaultState, MidiEvent, ModuleEvent } from '~/modules/types.ts'
 
 type Context = {
   instanceId: string
   moduleState: unknown
   setModuleState: (id: string, state: DefaultState) => void
-  telephone: EventEmitter
+  eventBus: EventEmitter<Record<string, ModuleEvent>>
   triggerMidi: (event: MidiEvent, instanceId: string) => void
 }
 

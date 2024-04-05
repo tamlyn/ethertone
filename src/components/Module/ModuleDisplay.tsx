@@ -1,21 +1,25 @@
+import EventEmitter from 'eventemitter3'
+
 import { ModuleProvider } from '~/components/Module/ModuleContext.tsx'
 import { getModuleSpec } from '~/modules'
-import { DefaultState, MidiEvent } from '~/modules/types.ts'
+import { DefaultState, MidiEvent, ModuleEvent } from '~/modules/types.ts'
 import { Module } from '~/reducer.ts'
 
 import styles from './moduleDisplay.module.css'
 
 type Props = {
-  onClickRemove: () => void
   module: Module
+  onClickRemove: () => void
   setModuleState: (instanceId: string, moduleState: DefaultState) => void
   triggerMidi: (event: MidiEvent) => void
+  eventBus: EventEmitter<Record<string, ModuleEvent>>
 }
 
 function ModuleDisplay({
-  onClickRemove,
   module,
+  onClickRemove,
   setModuleState,
+  eventBus,
   triggerMidi,
 }: Props) {
   const moduleSpec = getModuleSpec(module.moduleId)
@@ -29,7 +33,7 @@ function ModuleDisplay({
       instanceId={module.instanceId}
       moduleState={module.moduleState}
       setModuleState={setModuleState}
-      telephone={module.emitter}
+      eventBus={eventBus}
       triggerMidi={triggerMidi}
     >
       <div className={styles.container}>

@@ -5,6 +5,7 @@ import {
   DefaultState,
   MeterEvent,
   MidiEvent,
+  ModuleEvent,
   TickEvent,
 } from '~/modules/types.ts'
 import { useEffectEvent } from '~/utils/useEffectEvent.ts'
@@ -41,14 +42,20 @@ export function useEvent<T extends Event>(
   callback: (event: T) => void,
 ) {
   const context = useContext(ModuleContext)
-  const cb = useEffectEvent(callback)
+  const cb = useEffectEvent((event: ModuleEvent) => {
+    if (event.type === eventName) {
+      // FIXME
+      // @ts-ignore
+      callback(event)
+    }
+  })
 
   useEffect(() => {
-    context.telephone.on(eventName, cb)
+    context.eventBus.on(context.instanceId, cb)
     return () => {
-      context.telephone.off(eventName, cb)
+      context.eventBus.off(context.instanceId, cb)
     }
-  }, [cb, context.telephone, eventName])
+  }, [cb, context.eventBus, context.instanceId])
 }
 
 export function useMidi(callback?: (event: MidiEvent) => void) {

@@ -2,12 +2,6 @@ import { ElemNode } from '@elemaudio/core'
 
 export type DefaultState = Record<string, unknown>
 
-export type MeterEvent = {
-  source?: string
-  min: number
-  max: number
-}
-
 export type BuildAudioGraph<State extends DefaultState> = (props: {
   instanceId: string
   state: State
@@ -21,8 +15,16 @@ export type ModuleSpec<State extends DefaultState = DefaultState> = {
   buildAudioGraph?: BuildAudioGraph<State>
 }
 
+export type MeterEvent = {
+  type: 'meter'
+  source?: string
+  min: number
+  max: number
+}
 export type MidiEvent =
-  | { type: 'noteOn' | 'noteOff'; note: number; velocity: number }
-  | { type: 'controlChange'; control: number; value: number }
-
-export type TickEvent = { tick: number }
+  | { type: 'midi'; midiType: 'noteOn'; note: number; velocity: number }
+  | { type: 'midi'; midiType: 'noteOff'; note: number; velocity: number }
+  | { type: 'midi'; midiType: 'allNotesOff' }
+  | { type: 'midi'; midiType: 'controlChange'; control: number; value: number }
+export type TickEvent = { type: 'tick'; tick: number }
+export type ModuleEvent = MeterEvent | MidiEvent | TickEvent

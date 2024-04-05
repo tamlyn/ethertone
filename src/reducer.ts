@@ -1,4 +1,3 @@
-import EventEmitter from 'eventemitter3'
 import { v4 } from 'uuid'
 
 import { DefaultState } from './modules/types.ts'
@@ -6,7 +5,6 @@ import { DefaultState } from './modules/types.ts'
 export type Module = {
   moduleId: string
   instanceId: string
-  emitter: EventEmitter
   consumesMidi: boolean
   moduleState?: DefaultState
 }
@@ -72,7 +70,6 @@ export function reducer(state: AppState, action: AppAction): AppState {
           {
             moduleId: action.moduleId,
             instanceId,
-            emitter: new EventEmitter(),
             consumesMidi: true, // todo default to false
           },
         ],

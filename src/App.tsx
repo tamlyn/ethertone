@@ -1,4 +1,5 @@
 import WebRenderer from '@elemaudio/web-renderer'
+import EventEmitter from 'eventemitter3'
 import { useEffect, useReducer } from 'react'
 
 import styles from './app.module.css'
@@ -9,8 +10,8 @@ import ModuleDisplay from './components/Module/ModuleDisplay.tsx'
 import moduleSpecs from './modules'
 import {
   DefaultState,
-  MeterEvent,
   MidiEvent,
+  ModuleEvent,
   ModuleSpec,
 } from './modules/types.ts'
 import { initialState, Module, reducer } from './reducer.ts'
@@ -18,6 +19,7 @@ import { useEffectEvent } from './utils/useEffectEvent.ts'
 
 const ctx = new AudioContext()
 const core = new WebRenderer()
+const eventBus = new EventEmitter<Record<string, ModuleEvent>>()
 function startAudio() {
   ctx.resume().catch(console.error)
 }
@@ -39,23 +41,19 @@ function App() {
     return () => void core.removeAllListeners('load')
   }, [])
 
-  const onMeter = useEffectEvent((event: MeterEvent) => {
-    const instanceId = event.source
-    const module = state.modules.find(
-      (module) => module.instanceId === instanceId,
-    )
-    if (!module) {
-      console.error('Meter event for unknown module "%s"', instanceId)
-      return
-    }
-    module.emitter.emit('meter', event)
-  })
+  const onMeter = useEffectEvent(
+    (event: { source?: string; min: number; max: number }) => {
+      if (event.source) {
+        eventBus.emit(event.source, { type: 'meter', ...event })
+      }
+    },
+  )
 
   const onSnapshot = useEffectEvent(
     (event: { source?: string; data: number }) => {
       if (event.source === 'tick') dispatch({ type: 'tick' })
-      state.modules.map((module) => {
-        module.emitter.emit('tick', { tick: event.data })
+      state.modules.forEach((module) => {
+        eventBus.emit(module.instanceId, { type: 'tick', tick: event.data })
       })
     },
   )
@@ -92,7 +90,7 @@ function App() {
 
     if (module) {
       if (module.consumesMidi) {
-        module.emitter.emit('midi', event)
+        eventBus.emit(module.instanceId, event)
       } else {
         triggerMidi(event, module.instanceId)
       }
@@ -148,6 +146,7 @@ function App() {
                 setModuleState={setModuleState}
                 onClickRemove={onClickRemove}
                 triggerMidi={triggerMidi}
+                eventBus={eventBus}
               />
             )
           })}
@@ -164,14 +163,16 @@ function App() {
       <Keyboard
         onNoteOn={(noteNum) =>
           triggerMidi({
-            type: 'noteOn',
+            type: 'midi',
+            midiType: 'noteOn',
             note: noteNum,
             velocity: 127,
           })
         }
         onNoteOff={(noteNum) =>
           triggerMidi({
-            type: 'noteOff',
+            type: 'midi',
+            midiType: 'noteOff',
             note: noteNum,
             velocity: 0,
           })
