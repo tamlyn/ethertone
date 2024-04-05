@@ -1,6 +1,7 @@
 import { el } from '@elemaudio/core'
 
-import { PercentKnob, TimeKnob } from '~/components/Knob/Knobs.tsx'
+import { PercentKnob } from '~/components/Knob/PercentKnob.tsx'
+import { TimeKnob } from '~/components/Knob/TimeKnob.tsx'
 import { useModuleState } from '~/components/Module/moduleHooks.ts'
 
 import { BuildAudioGraph, ModuleSpec } from '../types.ts'

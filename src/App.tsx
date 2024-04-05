@@ -4,11 +4,16 @@ import { useEffect, useReducer } from 'react'
 import styles from './app.module.css'
 import { buildAppAudioGraph } from './audioGraph.ts'
 import Keyboard from './components/Keyboard.tsx'
-import { TempoKnob } from './components/Knob/Knobs.tsx'
+import { TempoKnob } from './components/Knob/TempoKnob.tsx'
 import { ModuleProvider } from './components/Module/ModuleContext.tsx'
 import moduleSpecs, { getModuleSpec } from './modules'
-import { DefaultState, MeterEvent, ModuleSpec } from './modules/types.ts'
-import { initialState, reducer } from './reducer.ts'
+import {
+  DefaultState,
+  MeterEvent,
+  MidiEvent,
+  ModuleSpec,
+} from './modules/types.ts'
+import { initialState, Module, reducer } from './reducer.ts'
 import { useEffectEvent } from './utils/useEffectEvent.ts'
 
 const ctx = new AudioContext()
@@ -49,6 +54,9 @@ function App() {
   const onSnapshot = useEffectEvent(
     (event: { source?: string; data: number }) => {
       if (event.source === 'tick') dispatch({ type: 'tick' })
+      state.modules.map((module) => {
+        module.emitter.emit('tick', { tick: event.data })
+      })
     },
   )
 
@@ -67,6 +75,30 @@ function App() {
     dispatch({ type: 'addModule', moduleId: moduleSpec.moduleId })
   }
 
+  function triggerMidi(event: MidiEvent, fromInstanceId?: string) {
+    let module: Module | undefined
+    if (fromInstanceId) {
+      const index = state.modules.findIndex(
+        (module) => module.instanceId === fromInstanceId,
+      )
+      if (index === -1) {
+        console.error('Midi event from unknown module "%s"', fromInstanceId)
+        return
+      }
+      module = state.modules[index + 1]
+    } else {
+      module = state.modules[0]
+    }
+
+    if (module) {
+      if (module.consumesMidi) {
+        module.emitter.emit('midi', event)
+      } else {
+        triggerMidi(event, module.instanceId)
+      }
+    }
+  }
+
   if (state.audioContextReady) {
     const channels = buildAppAudioGraph(state)
     core.render(...channels)
@@ -74,21 +106,19 @@ function App() {
 
   if (!state.audioContextReady) return <h1>Loading...</h1>
 
-  const firstModule = state.modules[0]
-
   return (
     <div className={styles.container}>
       <h1>Ethertone</h1>
       <Keyboard
         onNoteOn={(noteNum) =>
-          firstModule.emitter.emit('midi', {
+          triggerMidi({
             type: 'noteOn',
             note: noteNum,
             velocity: 127,
           })
         }
         onNoteOff={(noteNum) =>
-          firstModule.emitter.emit('midi', {
+          triggerMidi({
             type: 'noteOff',
             note: noteNum,
             velocity: 0,
@@ -137,6 +167,7 @@ function App() {
                 moduleState={module.moduleState}
                 setModuleState={setModuleState}
                 telephone={module.emitter}
+                triggerMidi={triggerMidi}
               >
                 <h2>{moduleSpec.title}</h2>
                 <moduleSpec.Component />

@@ -1,6 +1,7 @@
+import { PercentKnob } from '~/components/Knob/PercentKnob.tsx'
 import { useModuleState } from '~/components/Module/moduleHooks.ts'
 
-import { PercentKnob, TimeKnob } from '../../components/Knob/Knobs.tsx'
+import { TimeKnob } from '../../components/Knob/TimeKnob.tsx'
 import { BuildAudioGraph, ModuleSpec } from '../types.ts'
 import styles from './reverb.module.css'
 import srvbAudio from './srvb-audio.ts'

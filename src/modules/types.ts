@@ -24,3 +24,5 @@ export type ModuleSpec<State extends DefaultState = DefaultState> = {
 export type MidiEvent =
   | { type: 'noteOn' | 'noteOff'; note: number; velocity: number }
   | { type: 'controlChange'; control: number; value: number }
+
+export type TickEvent = { tick: number }

@@ -1,7 +1,8 @@
 import { el } from '@elemaudio/core'
 
-import { PercentKnob, TimeKnob } from '~/components/Knob/Knobs.tsx'
-import { useEvent, useModuleState } from '~/components/Module/moduleHooks.ts'
+import { PercentKnob } from '~/components/Knob/PercentKnob.tsx'
+import { TimeKnob } from '~/components/Knob/TimeKnob.tsx'
+import { useMidi, useModuleState } from '~/components/Module/moduleHooks.ts'
 import { midiToFreq } from '~/utils/midi.ts'
 
 import { BuildAudioGraph, ModuleSpec } from '../types.ts'
@@ -46,7 +47,7 @@ const Synth = () => {
   }
   const [state, setState] = useModuleState<State>(initialState)
 
-  useEvent('midi', (event) => {
+  useMidi((event) => {
     switch (event.type) {
       case 'noteOn': {
         const notes = [...state.notes, event.note]

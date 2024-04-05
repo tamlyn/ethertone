@@ -1,7 +1,12 @@
 import { useContext, useEffect } from 'react'
 
 import { ModuleContext } from '~/components/Module/ModuleContext.tsx'
-import { DefaultState, MeterEvent, MidiEvent } from '~/modules/types.ts'
+import {
+  DefaultState,
+  MeterEvent,
+  MidiEvent,
+  TickEvent,
+} from '~/modules/types.ts'
 import { useEffectEvent } from '~/utils/useEffectEvent.ts'
 
 export function useModuleState<S extends DefaultState>(initialState: S) {
@@ -18,6 +23,7 @@ export function useModuleState<S extends DefaultState>(initialState: S) {
   ] as const
 }
 
+type Event = MeterEvent | MidiEvent | TickEvent
 export function useEvent(
   eventName: 'midi',
   callback: (event: MidiEvent) => void,
@@ -26,7 +32,11 @@ export function useEvent(
   eventName: 'meter',
   callback: (event: MeterEvent) => void,
 ): void
-export function useEvent<T extends MeterEvent | MidiEvent>(
+export function useEvent(
+  eventName: 'tick',
+  callback: (event: TickEvent) => void,
+): void
+export function useEvent<T extends Event>(
   eventName: string,
   callback: (event: T) => void,
 ) {
@@ -39,4 +49,18 @@ export function useEvent<T extends MeterEvent | MidiEvent>(
       context.telephone.off(eventName, cb)
     }
   }, [cb, context.telephone, eventName])
+}
+
+export function useMidi(callback?: (event: MidiEvent) => void) {
+  useEvent('midi', callback ?? (() => {}))
+  const context = useContext(ModuleContext)
+
+  if (callback) {
+    // todo set consumesMidi to true
+  }
+
+  return {
+    trigger: (event: MidiEvent) =>
+      context.triggerMidi(event, context.instanceId),
+  }
 }

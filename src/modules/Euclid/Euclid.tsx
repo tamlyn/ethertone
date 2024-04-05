@@ -1,5 +1,9 @@
-import { DiscreteKnob } from '~/components/Knob/Knobs.tsx'
-import { useModuleState } from '~/components/Module/moduleHooks.ts'
+import { DiscreteKnob } from '~/components/Knob/DiscreteKnob.tsx'
+import {
+  useEvent,
+  useMidi,
+  useModuleState,
+} from '~/components/Module/moduleHooks.ts'
 
 import { ModuleSpec } from '../types.ts'
 import { euclideanPattern } from './euclideanPattern.ts'
@@ -8,6 +12,7 @@ type State = {
   steps: number
   fill: number
   rotate: number
+  cursor: number
 }
 
 export const Euclid = () => {
@@ -15,7 +20,9 @@ export const Euclid = () => {
     steps: 16,
     fill: 4,
     rotate: 0,
+    cursor: 0,
   })
+  const { trigger } = useMidi()
 
   const pattern = euclideanPattern(
     Math.round(state.steps),
@@ -23,27 +30,34 @@ export const Euclid = () => {
     Math.round(state.rotate),
   )
 
+  useEvent('tick', () => {
+    const cursor = (state.cursor + 1) % state.steps
+    setState({ ...state, cursor })
+    if (pattern[cursor]) {
+      trigger({ type: 'noteOn', note: 60, velocity: 100 })
+    } else {
+      trigger({ type: 'noteOff', note: 60, velocity: 100 })
+    }
+  })
+
   return (
     <div>
       <div style={{ display: 'flex', gap: 10 }}>
         <DiscreteKnob
           label="Divide"
-          min={1}
-          max={24}
+          options={Array.from({ length: 24 }, (_, i) => i + 1)}
           value={state.steps}
           onChange={(steps) => setState({ ...state, steps })}
         />
         <DiscreteKnob
           label="Fill"
-          min={0}
-          max={state.steps}
+          options={Array.from({ length: state.steps }, (_, i) => i + 1)}
           value={state.fill}
           onChange={(fill) => setState({ ...state, fill })}
         />
         <DiscreteKnob
           label="Rotate"
-          min={0}
-          max={state.steps - 1}
+          options={Array.from({ length: state.steps }, (_, i) => i)}
           value={state.rotate}
           onChange={(rotate) => setState({ ...state, rotate })}
         />
