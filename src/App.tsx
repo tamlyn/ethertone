@@ -21,15 +21,27 @@ const ctx = new AudioContext()
 const core = new WebRenderer()
 const eventBus = new EventEmitter<Record<string, ModuleEvent>>()
 function startAudio() {
+  if (ctx.state === 'running') return
   ctx.resume().catch(console.error)
 }
 
 function App() {
   const [state, dispatch] = useReducer(reducer, initialState)
 
-  function setModuleState(instanceId: string, moduleState: DefaultState) {
-    dispatch({ type: 'moduleStateChanged', instanceId, moduleState })
-  }
+  useEffect(() => {
+    const savedState = localStorage.getItem('state')
+    if (savedState) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      dispatch({ type: 'loadState', state: JSON.parse(savedState) })
+    }
+  }, [])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      localStorage.setItem('state', JSON.stringify(state))
+    }, 5000)
+    return () => clearTimeout(timer)
+  }, [state])
 
   useEffect(() => {
     core
@@ -71,6 +83,10 @@ function App() {
     startAudio()
 
     dispatch({ type: 'addModule', moduleId: moduleSpec.moduleId })
+  }
+
+  function setModuleState(instanceId: string, moduleState: DefaultState) {
+    dispatch({ type: 'moduleStateChanged', instanceId, moduleState })
   }
 
   function triggerMidi(event: MidiEvent, fromInstanceId?: string) {

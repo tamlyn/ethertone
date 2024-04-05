@@ -17,7 +17,10 @@ export const Meter = () => {
   const [state, setState] = useModuleState({ level: 0 })
 
   useEvent('meter', (event) => {
-    setState({ level: event.max })
+    const level = Math.max(Math.abs(event.min), Math.abs(event.max))
+    if (level > 0.0001) {
+      setState({ level })
+    }
   })
 
   return (

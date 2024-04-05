@@ -54,6 +54,7 @@ type AppAction =
   | { type: 'tick' }
   | { type: 'playToggle' }
   | { type: 'metronomeToggle' }
+  | { type: 'loadState'; state: AppState }
 
 export function reducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
@@ -140,6 +141,9 @@ export function reducer(state: AppState, action: AppAction): AppState {
           metronome: !state.globalState.metronome,
         },
       }
+
+    case 'loadState':
+      return { ...initialState, modules: action.state.modules }
 
     default:
       return state
