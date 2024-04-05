@@ -32,7 +32,7 @@ export const initialState: AppState = {
   modules: [],
   globalState: {
     playing: false,
-    metronome: true,
+    metronome: false,
     measure: 1,
     beat: 1,
     teenth: 1,

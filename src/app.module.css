@@ -1,13 +1,38 @@
 .container {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 16px;
+  margin: 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  background-color: #888;
+  color: #fff;
+
+  h1 {
+    font-size: 36px;
+    font-weight: bold;
+    margin: 0;
+    padding: 8px;
+  }
 }
 
 .controls {
   display: flex;
   gap: 16px;
   align-items: center;
+  padding: 0 16px;
+}
+
+.tracks {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.track {
+  display: flex;
+  gap: 16px;
 }
 
 .add {
