@@ -43,7 +43,7 @@ function ModuleDisplay({
             role="button"
             onClick={onClickRemove}
             className={styles.headerButton}
-            title={'Remove'}
+            title="Remove"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

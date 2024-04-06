@@ -2,6 +2,11 @@ import { v4 } from 'uuid'
 
 import { DefaultState } from './modules/types.ts'
 
+export type Track = {
+  trackId: string
+  modules: Array<Module>
+}
+
 export type Module = {
   moduleId: string
   instanceId: string
@@ -11,7 +16,7 @@ export type Module = {
 
 export type AppState = {
   audioContextReady: boolean
-  modules: Array<Module>
+  tracks: Array<Track>
   globalState: {
     playing: boolean
     metronome: boolean
@@ -27,7 +32,7 @@ export type AppState = {
 
 export const initialState: AppState = {
   audioContextReady: false,
-  modules: [],
+  tracks: [{ trackId: v4(), modules: [] }],
   globalState: {
     playing: false,
     metronome: false,
@@ -43,8 +48,10 @@ export const initialState: AppState = {
 
 type AppAction =
   | { type: 'audioContextReady' }
-  | { type: 'addModule'; moduleId: string }
-  | { type: 'removeModule'; instanceId: string }
+  | { type: 'addTrack' }
+  | { type: 'removeTrack'; trackId: string }
+  | { type: 'addModule'; trackId: string; moduleId: string }
+  | { type: 'removeModule'; trackId: string; instanceId: string }
   | {
       type: 'moduleStateChanged'
       instanceId: string
@@ -61,44 +68,63 @@ export function reducer(state: AppState, action: AppAction): AppState {
     case 'audioContextReady':
       return { ...state, audioContextReady: true }
 
+    case 'addTrack': {
+      const trackId = v4()
+      console.debug('Adding track "%s"', trackId)
+      return {
+        ...state,
+        tracks: [...state.tracks, { trackId, modules: [] }],
+      }
+    }
+
     case 'addModule': {
       const instanceId = v4()
       console.debug('Adding module "%s" (%s)', action.moduleId, instanceId)
-      return {
-        ...state,
-        modules: [
-          ...state.modules,
-          {
-            moduleId: action.moduleId,
-            instanceId,
-            consumesMidi: true, // todo default to false
-          },
-        ],
-      }
+      const tracks = state.tracks.map((track) => {
+        if (track.trackId === action.trackId) {
+          return {
+            ...track,
+            modules: [
+              ...track.modules,
+              {
+                moduleId: action.moduleId,
+                instanceId,
+                consumesMidi: true, // todo default to false
+              },
+            ],
+          }
+        }
+        return track
+      })
+      return { ...state, tracks }
     }
 
     case 'removeModule': {
-      const newModules = state.modules.filter(
-        (module) => module.instanceId !== action.instanceId,
-      )
-      return { ...state, modules: newModules }
+      const tracks = state.tracks.map((track) => {
+        if (track.trackId === action.trackId) {
+          return {
+            ...track,
+            modules: track.modules.filter(
+              (module) => module.instanceId !== action.instanceId,
+            ),
+          }
+        }
+        return track
+      })
+      return { ...state, tracks }
     }
 
     case 'moduleStateChanged': {
-      const moduleIndex = state.modules.findIndex(
-        (module) => module.instanceId === action.instanceId,
-      )
-      if (moduleIndex === -1) {
-        console.error('moduleStateChanged: module not found', action.instanceId)
-        return state
-      }
-
-      const newModules = [...state.modules]
-      newModules[moduleIndex] = {
-        ...newModules[moduleIndex],
-        moduleState: action.moduleState,
-      }
-      return { ...state, modules: newModules }
+      const tracks = state.tracks.map((track) => {
+        const modules = track.modules.map((module) => {
+          if (module.instanceId === action.instanceId) {
+            return { ...module, moduleState: action.moduleState }
+          }
+          return module
+        })
+        return { ...track, modules }
+      })
+      return { ...state, tracks }
     }
 
     case 'updateTempo':
@@ -143,7 +169,7 @@ export function reducer(state: AppState, action: AppAction): AppState {
       }
 
     case 'loadState':
-      return { ...initialState, modules: action.state.modules }
+      return { ...initialState, tracks: action.state.tracks }
 
     default:
       return state

@@ -8,12 +8,7 @@ import Keyboard from './components/Keyboard.tsx'
 import { TempoKnob } from './components/Knob/TempoKnob.tsx'
 import ModuleDisplay from './components/Module/ModuleDisplay.tsx'
 import moduleSpecs from './modules'
-import {
-  DefaultState,
-  MidiMessage,
-  ModuleEvent,
-  ModuleSpec,
-} from './modules/types.ts'
+import { DefaultState, MidiMessage, ModuleEvent } from './modules/types.ts'
 import { initialState, Module, reducer } from './reducer.ts'
 import { useEffectEvent } from './utils/useEffectEvent.ts'
 
@@ -64,8 +59,10 @@ function App() {
   const onSnapshot = useEffectEvent(
     (event: { source?: string; data: number }) => {
       if (event.source === 'tick') dispatch({ type: 'tick' })
-      state.modules.forEach((module) => {
-        eventBus.emit(module.instanceId, { type: 'tick', tick: event.data })
+      state.tracks.forEach((track) => {
+        track.modules.forEach((module) => {
+          eventBus.emit(module.instanceId, { type: 'tick', tick: event.data })
+        })
       })
     },
   )
@@ -79,10 +76,10 @@ function App() {
     }
   }, [onMeter, onSnapshot])
 
-  function addModule(moduleSpec: ModuleSpec) {
+  function addModule(trackId: string, moduleId: string) {
     startAudio()
 
-    dispatch({ type: 'addModule', moduleId: moduleSpec.moduleId })
+    dispatch({ type: 'addModule', trackId, moduleId })
   }
 
   function setModuleState(instanceId: string, moduleState: DefaultState) {
@@ -92,16 +89,19 @@ function App() {
   function triggerMidi(message: MidiMessage, fromInstanceId?: string) {
     let module: Module | undefined
     if (fromInstanceId) {
-      const index = state.modules.findIndex(
-        (module) => module.instanceId === fromInstanceId,
-      )
-      if (index === -1) {
+      for (const track of state.tracks) {
+        module = track.modules.find(
+          (module) => module.instanceId === fromInstanceId,
+        )
+        if (module) break
+      }
+      if (!module) {
         console.error('Midi event from unknown module "%s"', fromInstanceId)
         return
       }
-      module = state.modules[index + 1]
     } else {
-      module = state.modules[0]
+      // todo: some way of selecting which track receives midi
+      module = state.tracks[0].modules[0]
     }
 
     if (module) {
@@ -150,30 +150,39 @@ function App() {
       </div>
 
       <div className={styles.tracks}>
-        <div className={styles.track}>
-          {state.modules.map((module) => {
-            const onClickRemove = () =>
-              dispatch({ type: 'removeModule', instanceId: module.instanceId })
+        {state.tracks.map((track) => (
+          <div className={styles.track}>
+            {track.modules.map((module) => {
+              const onClickRemove = () =>
+                dispatch({
+                  type: 'removeModule',
+                  trackId: track.trackId,
+                  instanceId: module.instanceId,
+                })
 
-            return (
-              <ModuleDisplay
-                key={module.instanceId}
-                module={module}
-                setModuleState={setModuleState}
-                onClickRemove={onClickRemove}
-                triggerMidi={triggerMidi}
-                eventBus={eventBus}
-              />
-            )
-          })}
-          <div className={styles.add}>
-            {moduleSpecs.map((spec) => (
-              <button key={spec.title} onClick={() => addModule(spec)}>
-                {spec.title}
-              </button>
-            ))}
+              return (
+                <ModuleDisplay
+                  key={module.instanceId}
+                  module={module}
+                  setModuleState={setModuleState}
+                  onClickRemove={onClickRemove}
+                  triggerMidi={triggerMidi}
+                  eventBus={eventBus}
+                />
+              )
+            })}
+            <div className={styles.add}>
+              {moduleSpecs.map((spec) => (
+                <button
+                  key={spec.title}
+                  onClick={() => addModule(track.trackId, spec.moduleId)}
+                >
+                  {spec.title}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        ))}
       </div>
 
       <Keyboard

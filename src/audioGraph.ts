@@ -33,22 +33,28 @@ export function buildAppAudioGraph(state: AppState) {
     el.blepsquare(freq),
   )
 
-  let out: ElemNode = 0
-  for (const module of state.modules) {
-    const moduleSpec = getModuleSpec(module.moduleId)
-    out =
-      moduleSpec.buildAudioGraph && module.moduleState
-        ? moduleSpec.buildAudioGraph({
-            instanceId: module.instanceId,
-            state: module.moduleState,
-            input: out,
-          })
-        : out
+  const trackOuts: ElemNode[] = []
+  for (const track of state.tracks) {
+    let trackOut: ElemNode = 0
+
+    for (const module of track.modules) {
+      const moduleSpec = getModuleSpec(module.moduleId)
+      trackOut =
+        moduleSpec.buildAudioGraph && module.moduleState
+          ? moduleSpec.buildAudioGraph({
+              instanceId: module.instanceId,
+              state: module.moduleState,
+              input: trackOut,
+            })
+          : trackOut
+    }
+    trackOuts.push(trackOut)
   }
 
   if (state.globalState.metronome && state.globalState.playing) {
-    out = el.add(out, metronome)
+    trackOuts.push(metronome)
   }
+  const out = el.add(...trackOuts)
 
   return [out, el.add(state.globalState.playing ? tick : 0, out)]
 }
