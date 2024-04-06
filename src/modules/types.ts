@@ -21,10 +21,11 @@ export type MeterEvent = {
   min: number
   max: number
 }
-export type MidiEvent =
-  | { type: 'midi'; midiType: 'noteOn'; note: number; velocity: number }
-  | { type: 'midi'; midiType: 'noteOff'; note: number; velocity: number }
-  | { type: 'midi'; midiType: 'allNotesOff' }
-  | { type: 'midi'; midiType: 'controlChange'; control: number; value: number }
+export type MidiEvent = { type: 'midi'; message: MidiMessage }
 export type TickEvent = { type: 'tick'; tick: number }
 export type ModuleEvent = MeterEvent | MidiEvent | TickEvent
+
+export type MidiMessage =
+  | { type: 'noteOn' | 'noteOff'; note: number; velocity: number }
+  | { type: 'allNotesOff' }
+  | { type: 'controlChange'; control: number; value: number }

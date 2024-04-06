@@ -2,7 +2,7 @@ import EventEmitter from 'eventemitter3'
 
 import { ModuleProvider } from '~/components/Module/ModuleContext.tsx'
 import { getModuleSpec } from '~/modules'
-import { DefaultState, MidiEvent, ModuleEvent } from '~/modules/types.ts'
+import { DefaultState, MidiMessage, ModuleEvent } from '~/modules/types.ts'
 import { Module } from '~/reducer.ts'
 
 import styles from './moduleDisplay.module.css'
@@ -11,7 +11,7 @@ type Props = {
   module: Module
   onClickRemove: () => void
   setModuleState: (instanceId: string, moduleState: DefaultState) => void
-  triggerMidi: (event: MidiEvent) => void
+  triggerMidi: (message: MidiMessage) => void
   eventBus: EventEmitter<Record<string, ModuleEvent>>
 }
 

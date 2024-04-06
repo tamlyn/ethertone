@@ -47,15 +47,15 @@ const Synth = () => {
   }
   const [state, setState] = useModuleState<State>(initialState)
 
-  useMidi((event) => {
-    switch (event.midiType) {
+  useMidi((message) => {
+    switch (message.type) {
       case 'noteOn': {
-        const notes = [...state.notes, event.note]
+        const notes = [...state.notes, message.note]
         setState({ ...state, gate: 1, notes })
         break
       }
       case 'noteOff': {
-        const notes = state.notes.filter((note) => note !== event.note)
+        const notes = state.notes.filter((note) => note !== message.note)
         const gate = notes.length > 0 ? 1 : 0
         setState({ ...state, gate, notes })
         break

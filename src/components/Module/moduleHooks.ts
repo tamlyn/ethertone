@@ -5,6 +5,7 @@ import {
   DefaultState,
   MeterEvent,
   MidiEvent,
+  MidiMessage,
   ModuleEvent,
   TickEvent,
 } from '~/modules/types.ts'
@@ -58,8 +59,12 @@ export function useEvent<T extends Event>(
   }, [cb, context.eventBus, context.instanceId])
 }
 
-export function useMidi(callback?: (event: MidiEvent) => void) {
-  useEvent('midi', callback ?? (() => {}))
+export function useMidi(callback?: (message: MidiMessage) => void) {
+  useEvent('midi', (event) => {
+    if (callback) {
+      callback(event.message)
+    }
+  })
   const context = useContext(ModuleContext)
 
   if (callback) {
@@ -67,7 +72,7 @@ export function useMidi(callback?: (event: MidiEvent) => void) {
   }
 
   return {
-    trigger: (event: MidiEvent) =>
-      context.triggerMidi(event, context.instanceId),
+    trigger: (message: MidiMessage) =>
+      context.triggerMidi(message, context.instanceId),
   }
 }

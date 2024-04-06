@@ -34,9 +34,9 @@ export const Euclid = () => {
     const cursor = (state.cursor + 1) % state.steps
     setState({ ...state, cursor })
     if (pattern[cursor]) {
-      trigger({ type: 'midi', midiType: 'noteOn', note: 60, velocity: 100 })
+      trigger({ type: 'noteOn', note: 60, velocity: 100 })
     } else {
-      trigger({ type: 'midi', midiType: 'noteOff', note: 60, velocity: 100 })
+      trigger({ type: 'noteOff', note: 60, velocity: 100 })
     }
   })
 

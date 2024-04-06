@@ -10,7 +10,7 @@ import ModuleDisplay from './components/Module/ModuleDisplay.tsx'
 import moduleSpecs from './modules'
 import {
   DefaultState,
-  MidiEvent,
+  MidiMessage,
   ModuleEvent,
   ModuleSpec,
 } from './modules/types.ts'
@@ -89,7 +89,7 @@ function App() {
     dispatch({ type: 'moduleStateChanged', instanceId, moduleState })
   }
 
-  function triggerMidi(event: MidiEvent, fromInstanceId?: string) {
+  function triggerMidi(message: MidiMessage, fromInstanceId?: string) {
     let module: Module | undefined
     if (fromInstanceId) {
       const index = state.modules.findIndex(
@@ -106,9 +106,9 @@ function App() {
 
     if (module) {
       if (module.consumesMidi) {
-        eventBus.emit(module.instanceId, event)
+        eventBus.emit(module.instanceId, { type: 'midi', message })
       } else {
-        triggerMidi(event, module.instanceId)
+        triggerMidi(message, module.instanceId)
       }
     }
   }
@@ -177,21 +177,9 @@ function App() {
       </div>
 
       <Keyboard
-        onNoteOn={(noteNum) =>
-          triggerMidi({
-            type: 'midi',
-            midiType: 'noteOn',
-            note: noteNum,
-            velocity: 127,
-          })
-        }
-        onNoteOff={(noteNum) =>
-          triggerMidi({
-            type: 'midi',
-            midiType: 'noteOff',
-            note: noteNum,
-            velocity: 0,
-          })
+        onNoteOn={(note) => triggerMidi({ type: 'noteOn', note, velocity: 96 })}
+        onNoteOff={(note) =>
+          triggerMidi({ type: 'noteOff', note, velocity: 0 })
         }
       />
     </div>
