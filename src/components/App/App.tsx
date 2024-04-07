@@ -104,8 +104,10 @@ function App() {
 
     if (module) {
       if (module.consumesMidi) {
+        // let the module handle the midi message
         eventBus.emit(module.instanceId, { type: 'midi', message })
       } else {
+        // pass the midi message down the chain
         triggerMidi(message, module.instanceId)
       }
     }
@@ -149,7 +151,7 @@ function App() {
 
       <div className={styles.tracks}>
         {state.tracks.map((track) => (
-          <div className={styles.track}>
+          <div key={track.trackId} className={styles.track}>
             {track.modules.map((module) => {
               return (
                 <ModuleDisplay

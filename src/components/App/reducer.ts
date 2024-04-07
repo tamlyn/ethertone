@@ -57,6 +57,7 @@ export type AppAction =
       instanceId: string
       moduleState: DefaultState
     }
+  | { type: 'moduleHasMidiProcessor'; instanceId: string }
   | { type: 'updateTempo'; tempo: number }
   | { type: 'tick' }
   | { type: 'playToggle' }
@@ -89,7 +90,7 @@ export function reducer(state: AppState, action: AppAction): AppState {
               {
                 moduleId: action.moduleId,
                 instanceId,
-                consumesMidi: true, // todo default to false
+                consumesMidi: false,
               },
             ],
           }
@@ -116,6 +117,19 @@ export function reducer(state: AppState, action: AppAction): AppState {
         const modules = track.modules.map((module) => {
           if (module.instanceId === action.instanceId) {
             return { ...module, moduleState: action.moduleState }
+          }
+          return module
+        })
+        return { ...track, modules }
+      })
+      return { ...state, tracks }
+    }
+
+    case 'moduleHasMidiProcessor': {
+      const tracks = state.tracks.map((track) => {
+        const modules = track.modules.map((module) => {
+          if (module.instanceId === action.instanceId) {
+            return { ...module, consumesMidi: true }
           }
           return module
         })

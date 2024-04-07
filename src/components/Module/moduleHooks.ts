@@ -71,14 +71,17 @@ export function useMidi(callback?: (message: MidiMessage) => void) {
       callback(event.message)
     }
   })
-  const context = useContext(ModuleContext)
+  const { instanceId, triggerMidi } = useContext(ModuleContext)
+  const { dispatch } = useContext(AppContext)
 
-  if (callback) {
-    // todo set consumesMidi to true
-  }
+  const hasCallback = !!callback
+  useEffect(() => {
+    if (hasCallback) {
+      dispatch({ type: 'moduleHasMidiProcessor', instanceId })
+    }
+  }, [dispatch, hasCallback, instanceId])
 
   return {
-    trigger: (message: MidiMessage) =>
-      context.triggerMidi(message, context.instanceId),
+    trigger: (message: MidiMessage) => triggerMidi(message, instanceId),
   }
 }
