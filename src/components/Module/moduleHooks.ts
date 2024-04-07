@@ -1,5 +1,6 @@
 import { useContext, useEffect } from 'react'
 
+import { AppContext } from '~/components/App/AppContext.tsx'
 import { ModuleContext } from '~/components/Module/ModuleContext.tsx'
 import {
   DefaultState,
@@ -12,17 +13,22 @@ import {
 import { useEffectEvent } from '~/utils/useEffectEvent.ts'
 
 export function useModuleState<S extends DefaultState>(initialState: S) {
-  const context = useContext(ModuleContext)
+  const { instanceId, moduleState } = useContext(ModuleContext)
+  const { dispatch } = useContext(AppContext)
+
+  const setModuleState = (moduleState: DefaultState) =>
+    dispatch({
+      type: 'moduleStateChanged',
+      instanceId: instanceId,
+      moduleState,
+    })
 
   useEffect(() => {
-    context.setModuleState(context.instanceId, initialState)
+    setModuleState(initialState)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  return [
-    (context.moduleState as S) || initialState,
-    (state: S) => context.setModuleState(context.instanceId, state),
-  ] as const
+  return [(moduleState as S) || initialState, setModuleState] as const
 }
 
 type Event = MeterEvent | MidiEvent | TickEvent

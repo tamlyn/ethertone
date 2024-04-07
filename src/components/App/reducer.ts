@@ -1,6 +1,6 @@
 import { v4 } from 'uuid'
 
-import { DefaultState } from './modules/types.ts'
+import { DefaultState } from '../../modules/types.ts'
 
 export type Track = {
   trackId: string
@@ -46,12 +46,12 @@ export const initialState: AppState = {
   startPlayPosition: 0,
 }
 
-type AppAction =
+export type AppAction =
   | { type: 'audioContextReady' }
   | { type: 'addTrack' }
   | { type: 'removeTrack'; trackId: string }
   | { type: 'addModule'; trackId: string; moduleId: string }
-  | { type: 'removeModule'; trackId: string; instanceId: string }
+  | { type: 'removeModule'; instanceId: string }
   | {
       type: 'moduleStateChanged'
       instanceId: string
@@ -101,15 +101,12 @@ export function reducer(state: AppState, action: AppAction): AppState {
 
     case 'removeModule': {
       const tracks = state.tracks.map((track) => {
-        if (track.trackId === action.trackId) {
-          return {
-            ...track,
-            modules: track.modules.filter(
-              (module) => module.instanceId !== action.instanceId,
-            ),
-          }
+        return {
+          ...track,
+          modules: track.modules.filter(
+            (module) => module.instanceId !== action.instanceId,
+          ),
         }
-        return track
       })
       return { ...state, tracks }
     }

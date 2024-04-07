@@ -1,16 +1,18 @@
 import WebRenderer from '@elemaudio/web-renderer'
 import EventEmitter from 'eventemitter3'
-import { useEffect, useReducer } from 'react'
+import { useContext, useEffect } from 'react'
 
+import { AppContext } from '~/components/App/AppContext.tsx'
+
+import moduleSpecs from '../../modules'
+import { MidiMessage, ModuleEvent } from '../../modules/types.ts'
+import { useEffectEvent } from '../../utils/useEffectEvent.ts'
+import Keyboard from '../Keyboard/Keyboard.tsx'
+import { TempoKnob } from '../Knob/TempoKnob.tsx'
+import ModuleDisplay from '../Module/ModuleDisplay.tsx'
 import styles from './app.module.css'
 import { buildAppAudioGraph } from './audioGraph.ts'
-import Keyboard from './components/Keyboard.tsx'
-import { TempoKnob } from './components/Knob/TempoKnob.tsx'
-import ModuleDisplay from './components/Module/ModuleDisplay.tsx'
-import moduleSpecs from './modules'
-import { DefaultState, MidiMessage, ModuleEvent } from './modules/types.ts'
-import { initialState, Module, reducer } from './reducer.ts'
-import { useEffectEvent } from './utils/useEffectEvent.ts'
+import { Module } from './reducer.ts'
 
 const ctx = new AudioContext()
 const core = new WebRenderer()
@@ -21,7 +23,7 @@ function startAudio() {
 }
 
 function App() {
-  const [state, dispatch] = useReducer(reducer, initialState)
+  const { state, dispatch } = useContext(AppContext)
 
   useEffect(() => {
     const savedState = localStorage.getItem('state')
@@ -80,10 +82,6 @@ function App() {
     startAudio()
 
     dispatch({ type: 'addModule', trackId, moduleId })
-  }
-
-  function setModuleState(instanceId: string, moduleState: DefaultState) {
-    dispatch({ type: 'moduleStateChanged', instanceId, moduleState })
   }
 
   function triggerMidi(message: MidiMessage, fromInstanceId?: string) {
@@ -153,19 +151,10 @@ function App() {
         {state.tracks.map((track) => (
           <div className={styles.track}>
             {track.modules.map((module) => {
-              const onClickRemove = () =>
-                dispatch({
-                  type: 'removeModule',
-                  trackId: track.trackId,
-                  instanceId: module.instanceId,
-                })
-
               return (
                 <ModuleDisplay
                   key={module.instanceId}
                   module={module}
-                  setModuleState={setModuleState}
-                  onClickRemove={onClickRemove}
                   triggerMidi={triggerMidi}
                   eventBus={eventBus}
                 />

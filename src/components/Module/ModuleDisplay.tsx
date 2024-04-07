@@ -1,28 +1,26 @@
 import EventEmitter from 'eventemitter3'
+import { useContext } from 'react'
 
+import { AppContext } from '~/components/App/AppContext.tsx'
+import { Module } from '~/components/App/reducer.ts'
 import { ModuleProvider } from '~/components/Module/ModuleContext.tsx'
 import { getModuleSpec } from '~/modules'
-import { DefaultState, MidiMessage, ModuleEvent } from '~/modules/types.ts'
-import { Module } from '~/reducer.ts'
+import { MidiMessage, ModuleEvent } from '~/modules/types.ts'
 
 import styles from './moduleDisplay.module.css'
 
 type Props = {
   module: Module
-  onClickRemove: () => void
-  setModuleState: (instanceId: string, moduleState: DefaultState) => void
   triggerMidi: (message: MidiMessage) => void
   eventBus: EventEmitter<Record<string, ModuleEvent>>
 }
 
-function ModuleDisplay({
-  module,
-  onClickRemove,
-  setModuleState,
-  eventBus,
-  triggerMidi,
-}: Props) {
+function ModuleDisplay({ module, eventBus, triggerMidi }: Props) {
+  const { dispatch } = useContext(AppContext)
   const moduleSpec = getModuleSpec(module.moduleId)
+
+  const onClickRemove = () =>
+    dispatch({ type: 'removeModule', instanceId: module.instanceId })
 
   if (!moduleSpec) {
     console.error('Unknown module "%s"', module.moduleId)
@@ -32,7 +30,6 @@ function ModuleDisplay({
     <ModuleProvider
       instanceId={module.instanceId}
       moduleState={module.moduleState}
-      setModuleState={setModuleState}
       eventBus={eventBus}
       triggerMidi={triggerMidi}
     >
