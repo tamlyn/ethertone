@@ -14,6 +14,10 @@
     margin: 0;
     padding: 8px;
   }
+
+  .time {
+    font-family: monospace;
+  }
 }
 
 .controls {

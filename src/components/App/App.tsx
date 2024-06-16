@@ -12,7 +12,6 @@ import { TempoKnob } from '../Knob/TempoKnob.tsx'
 import ModuleDisplay from '../Module/ModuleDisplay.tsx'
 import styles from './app.module.css'
 import { buildAppAudioGraph } from './audioGraph.ts'
-import { Module } from './reducer.ts'
 
 const ctx = new AudioContext()
 const core = new WebRenderer()
@@ -85,31 +84,31 @@ function App() {
   }
 
   function triggerMidi(message: MidiMessage, fromInstanceId?: string) {
-    let module: Module | undefined
+    // todo: some way of selecting which track receives midi
+    let trackIndex = 0
+    let moduleIndex = 0
+
     if (fromInstanceId) {
-      for (const track of state.tracks) {
-        module = track.modules.find(
-          (module) => module.instanceId === fromInstanceId,
-        )
-        if (module) break
+      for (const [i, track] of state.tracks.entries()) {
+        for (const [j, module] of track.modules.entries()) {
+          if (module.instanceId === fromInstanceId) {
+            trackIndex = i
+            moduleIndex = j
+            break
+          }
+        }
       }
-      if (!module) {
-        console.error('Midi event from unknown module "%s"', fromInstanceId)
-        return
-      }
-    } else {
-      // todo: some way of selecting which track receives midi
-      module = state.tracks[0].modules[0]
     }
 
-    if (module) {
-      if (module.consumesMidi) {
-        // let the module handle the midi message
-        eventBus.emit(module.instanceId, { type: 'midi', message })
-      } else {
-        // pass the midi message down the chain
-        triggerMidi(message, module.instanceId)
-      }
+    const module = state.tracks[trackIndex].modules[moduleIndex]
+
+    if (module.consumesMidi) {
+      // let the module handle the midi message
+      eventBus.emit(module.instanceId, { type: 'midi', message })
+    } else {
+      // pass the midi message down the chain
+      const nextModule = state.tracks[trackIndex].modules[moduleIndex + 1]
+      triggerMidi(message, nextModule.instanceId)
     }
   }
 
@@ -142,7 +141,7 @@ function App() {
           <button onClick={() => dispatch({ type: 'metronomeToggle' })}>
             {state.globalState.metronome ? 'Mute' : 'Unmute'} Metronome
           </button>
-          <div>
+          <div className={styles.time}>
             {state.globalState.measure}:{state.globalState.beat}:
             {state.globalState.teenth}
           </div>

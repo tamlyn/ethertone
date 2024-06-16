@@ -73,7 +73,11 @@ export const Euclid = () => {
         {pattern.map((x, i) => (
           <div
             key={i}
-            style={{ backgroundColor: x ? 'black' : 'white', flex: 1 }}
+            style={{
+              backgroundColor:
+                i === state.cursor ? '#535bf2' : x ? 'black' : 'white',
+              flex: 1,
+            }}
           />
         ))}
       </div>
